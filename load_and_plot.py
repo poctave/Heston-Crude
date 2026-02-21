@@ -1,7 +1,7 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 
-FILE = "Heston-crude-HArdcodded.xlsx"
+FILE = "data/Heston-crude-HArdcodded.xlsx"
 
 # --- Load Futures sheet ---
 # Col 1 = Date, Col 2 = CO1 price, Col 6 = CL1 price

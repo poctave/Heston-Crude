@@ -1,7 +1,7 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 
-FILE = "Heston-crude-HArdcodded.xlsx"
+FILE = "data/Heston-crude-HArdcodded.xlsx"
 
 # --- Load Sheet3 ---
 s3_raw = pd.read_excel(FILE, sheet_name="Sheet3", header=None)
