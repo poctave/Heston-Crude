@@ -233,14 +233,33 @@ def plot_eigenvector_composition(static):
 # Figures D, E, F: Rolling analysis
 # ---------------------------------------------------------------------------
 
-def load_rolling():
+def load_rolling(rmse_max=8.0, cn_max=1e8):
+    """
+    Load rolling results and filter low-quality calibrations.
+
+    Parameters
+    ----------
+    rmse_max : float  — drop rows with RMSE above this threshold (vol pts)
+    cn_max   : float  — cap condition numbers above this value (likely numerical noise)
+    """
     if not os.path.exists(ROLLING_CSV):
         print(f"\n  Rolling CSV not found: {ROLLING_CSV}")
-        print("  Run: python hessian.py --rolling  (or the rolling notebook cell)")
+        print("  Run hessian.py rolling analysis first.")
         return None
     df = pd.read_csv(ROLLING_CSV, parse_dates=["Date"])
-    print(f"\nLoaded rolling results: {len(df)} rows, "
-          f"{df['Date'].min().date()} – {df['Date'].max().date()}")
+    n_raw = len(df)
+
+    # Filter unreliable calibrations
+    df = df[df["rmse_volpts"] <= rmse_max].copy()
+    df["condition_number"] = df["condition_number"].clip(upper=cn_max)
+    df = df.sort_values(["Underlying", "Date"]).reset_index(drop=True)
+
+    n_kept = len(df)
+    print(f"\nLoaded rolling results: {n_raw} raw rows → {n_kept} kept "
+          f"(RMSE ≤ {rmse_max}%, CN capped at {cn_max:.0e})")
+    if n_kept > 0:
+        print(f"  Date range: {df['Date'].min().date()} – {df['Date'].max().date()}")
+        print(f"  By underlying: {df.Underlying.value_counts().to_dict()}")
     return df
 
 
