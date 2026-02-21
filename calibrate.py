@@ -24,10 +24,13 @@ import heston_model
 # Configuration — edit these before running
 # ---------------------------------------------------------------------------
 
+USE_BLOOMBERG_DATA = True       # True = parse real Bloomberg files via surface_loader
+                                # False = use legacy options_data.csv
+
 FUTURES_FILE     = "data/Heston-crude-HArdcodded.xlsx"
 OPTIONS_FILE     = "data/options_data.csv"
-RISK_FREE_RATE   = 0.053        # 3-month SOFR / T-bill rate (decimal)
-CALIBRATION_DATE = None         # None = use most recent date in options file
+RISK_FREE_RATE   = 0.053        # fallback rate (used only when USE_BLOOMBERG_DATA=False)
+CALIBRATION_DATE = None         # None = use most recent date in options data
 UNDERLYINGS      = ["CO1", "CL1"]
 OUTPUT_DIR       = "results"
 
@@ -38,9 +41,16 @@ OUTPUT_DIR       = "results"
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 # Load data
-futures_df = data_loader.load_futures(FUTURES_FILE)
-options_df = data_loader.load_options(OPTIONS_FILE)
-options_df = data_loader.merge_spot_into_options(options_df, futures_df)
+if USE_BLOOMBERG_DATA:
+    import surface_loader
+    options_df = surface_loader.build_options_df()
+    options_df["needs_iv_inversion"] = False   # surface provides ImpliedVol directly
+    moneyness = options_df["Strike"] / options_df["SpotPrice"]
+    options_df = options_df[(moneyness >= 0.7) & (moneyness <= 1.3)].copy()
+else:
+    futures_df = data_loader.load_futures(FUTURES_FILE)
+    options_df = data_loader.load_options(OPTIONS_FILE)
+    options_df = data_loader.merge_spot_into_options(options_df, futures_df)
 
 # Fill missing implied vols by inverting option prices
 inv_mask = options_df["needs_iv_inversion"]

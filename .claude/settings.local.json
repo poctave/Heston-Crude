@@ -3,7 +3,12 @@
     "allow": [
       "Bash(git commit:*)",
       "Bash(git push:*)",
-      "Bash(python3:*)"
+      "Bash(python3:*)",
+      "Bash(ls:*)",
+      "Bash(unzip:*)",
+      "Bash(conda run python:*)",
+      "Bash(conda run python3:*)",
+      "Bash(MPLBACKEND=Agg conda run python:*)"
     ]
   }
 }
