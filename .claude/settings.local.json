@@ -16,7 +16,13 @@
       "Bash(python:*)",
       "Bash(git stash:*)",
       "Bash(FILTER_BRANCH_SQUELCH_WARNING=1 git filter-branch:*)",
-      "Bash(MPLBACKEND=Agg PYTHONUNBUFFERED=1 conda run --no-capture-output python:*)"
+      "Bash(MPLBACKEND=Agg PYTHONUNBUFFERED=1 conda run --no-capture-output python:*)",
+      "Bash(kill:*)",
+      "Read(//Users/poctave/Desktop/Claude Code/Dissertation/**)",
+      "Bash(for i in 1 2 3)",
+      "Bash(do sleep 1200)",
+      "Bash(echo:*)",
+      "Bash(done)"
     ]
   }
 }
