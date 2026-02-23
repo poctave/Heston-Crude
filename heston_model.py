@@ -10,7 +10,7 @@ Parameters:
     kappa  : mean-reversion speed of variance
     theta  : long-run variance  (long-run vol = sqrt(theta))
     sigma  : volatility of volatility
-    rho    : spot-variance correlation  (typically negative for commodities)
+    rho    : spot-variance correlation  (historically negative for oil; persistently positive for Brent/WTI since mid-2022)
     v0     : initial variance  (initial vol = sqrt(v0))
 
 References:

@@ -119,6 +119,8 @@ for underlying in UNDERLYINGS:
           f"({np.sqrt(result['theta'])*100:.1f}% long-run vol)")
     print(f"  {'sigma':<10} {result['sigma']:>8.4f}   Vol of vol")
     print(f"  {'rho':<10} {result['rho']:>8.4f}   Spot-vol correlation")
+    if result['rho'] > 0:
+        print(f"  *** NOTE: rho > 0 (call-skew regime — atypical for oil; observed since mid-2022)")
     print(f"  {'v0':<10} {result['v0']:>8.4f}   Initial variance "
           f"({np.sqrt(result['v0'])*100:.1f}% initial vol)")
     print(f"\n  Feller condition (2κθ ≥ σ²) : "

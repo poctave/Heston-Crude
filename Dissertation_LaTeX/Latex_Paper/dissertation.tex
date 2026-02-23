@@ -1,0 +1,3565 @@
+% ============================================================
+%  Dissertation — Spectral Geometry and Calibration Stability
+%  of the Heston Model in Crude Oil Options Markets
+% ============================================================
+\documentclass[12pt, a4paper]{report}
+
+% --- Encoding & font ---
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+
+% --- Layout ---
+\usepackage[top=2.5cm, bottom=2.5cm, left=2.5cm, right=2.5cm]{geometry}
+\usepackage{setspace}
+\onehalfspacing
+
+% --- Mathematics ---
+\usepackage{amsmath, amssymb, amsthm}
+
+% --- Figures & tables ---
+\usepackage{graphicx}
+\graphicspath{
+  {../../Dissertation/}
+  {../../Dissertation/index_plots/}
+  {../../Dissertation/results/}
+  {../../Dissertation/data_plots/}
+}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{booktabs}
+\usepackage{float}
+
+% --- Code listings ---
+\usepackage{listings}
+\usepackage{xcolor}
+
+\definecolor{codebg}{RGB}{248, 248, 248}
+\definecolor{codecomment}{RGB}{100, 100, 100}
+\definecolor{codekw}{RGB}{0, 100, 180}
+\definecolor{codestring}{RGB}{163, 21, 21}
+\definecolor{codenum}{RGB}{9, 134, 88}
+
+\lstdefinestyle{python}{
+  language=Python,
+  backgroundcolor=\color{codebg},
+  basicstyle=\ttfamily\footnotesize,
+  keywordstyle=\color{codekw}\bfseries,
+  stringstyle=\color{codestring},
+  commentstyle=\color{codecomment}\itshape,
+  numberstyle=\tiny\color{gray},
+  numbers=left,
+  numbersep=6pt,
+  stepnumber=1,
+  frame=single,
+  framerule=0.5pt,
+  rulecolor=\color{gray!40},
+  breaklines=true,
+  breakatwhitespace=true,
+  showstringspaces=false,
+  tabsize=4,
+  captionpos=b,
+  lineskip=-1pt,
+  aboveskip=6pt,
+  belowskip=4pt,
+  xleftmargin=12pt,
+  morekeywords={True, False, None, np, pd, scipy}
+}
+\lstset{style=python}
+
+% --- Multi-page tables and landscape ---
+\usepackage{longtable}
+\usepackage{pdflscape}
+\usepackage{array}
+
+% --- Bibliography ---
+\usepackage[round, authoryear]{natbib}
+
+% --- Hyperlinks (load last) ---
+\usepackage[colorlinks=true, linkcolor=black, citecolor=blue, urlcolor=blue]{hyperref}
+
+% ============================================================
+\begin{document}
+
+% --- Title page ---
+\begin{titlepage}
+  \centering
+  \vspace*{2cm}
+  {\LARGE\bfseries Spectral Geometry and Calibration Stability\\
+   of the Heston Model\\[0.6em]
+   \large A Hessian-Based Analysis of Parameter Identifiability\\
+   in Brent and WTI Crude Oil Options\par}
+  \vspace{1.2cm}
+  {\large\itshape
+   What does the spectral geometry of the Heston calibration Hessian reveal\\
+   about parameter identifiability in Brent and WTI crude oil options markets,\\
+   and across which macro-financial regimes does calibration instability emerge?\par}
+  \vspace{1.2cm}
+  {\large Octave SUPRANO\par}
+  \vspace{0.5cm}
+  {\large ESSEC Business School\par}
+  \vspace{0.5cm}
+  {\large Bachelor in Business Administration\par}
+  \vspace{2cm}
+  {\large 22 February 2026\par}
+  \vfill
+  {\normalsize Submitted in partial fulfilment of the requirements for the degree of\\
+   Bachelor in Business Administration\par}
+\end{titlepage}
+
+% --- Abstract ---
+\begin{abstract}
+\addcontentsline{toc}{chapter}{Abstract}
+This dissertation investigates the calibration stability and parameter identifiability
+of the \citet{heston1993} stochastic volatility model when applied to crude oil futures
+options. Using daily Bloomberg OVDV implied volatility surfaces for Brent (COA) and WTI
+(CLA) from January 2006 to February 2026 — spanning six constant-maturity tenors (1M to
+24M) and seven moneyness levels (90\% to 110\% of the forward price) — we construct a
+rigorous data pipeline that converts raw Bloomberg exports into a calibration-ready
+dataset.
+
+The Heston model is calibrated via a two-stage procedure combining global differential
+evolution with local L-BFGS-B refinement, using the numerically stable characteristic
+function formulation of \citet{lordkahl2010} and the fast Fourier transform pricer of
+\citet{carrmadan1999}. The static analysis snapshot is set to 1 December 2021 — the
+most recent date exhibiting the historically dominant crude oil skew regime — yielding
+root mean squared errors of 1.54 volatility points for Brent and 2.74 volatility points
+for WTI. Both contracts exhibit a negative spot-variance correlation
+($\hat{\rho} \approx -0.80$ for Brent and $-0.77$ for WTI), consistent with the
+put-skew dominance that characterised oil options markets throughout most of 2006--2022.
+Note that since approximately mid-2022, this correlation has persistently inverted to
+positive values, reflecting a call-skew regime; the implications of this inversion are
+discussed in Chapters~\ref{ch:loading} and~\ref{ch:discussion}. The Feller condition is
+violated for both underlyings, indicating that the calibrated variance dynamics can reach
+zero --- a structural limitation that motivates the central contribution of this dissertation.
+
+The main contribution is a spectral geometry analysis of the Hessian of the calibration
+loss function evaluated at the optimal parameter vector. Decomposing the Hessian into
+eigenvalues and eigenvectors reveals which parameter directions are \emph{stiff} (well
+constrained by data) and which are \emph{sloppy} (poorly identified), providing a
+quantitative characterisation of calibration instability that goes beyond standard
+goodness-of-fit metrics. A rolling monthly Hessian analysis over the full 2006--2026
+sample yields condition numbers of order $10^5$--$10^6$ for both benchmarks, with the
+mean-reversion speed $\kappa$ consistently identified as the sloppy direction.
+
+An empirical chapter links the rolling condition number to five macro-financial
+indicators --- OVX, VIX, the Caldara--Iacoviello Geopolitical Risk index, EIA crude
+inventories, and the US Dollar Index --- using rule-based regime classification and OLS
+regression with Newey--West standard errors. All indicators are negatively correlated
+with the condition number: higher market stress produces richer volatility surfaces that
+constrain parameters more tightly. The five-indicator model explains 8.9\% and 14.4\%
+of condition number variation for Brent and WTI respectively, with geopolitical risk
+emerging as the only individually significant predictor for WTI.
+
+A supplementary chapter extends the framework to the \citet{bates1996} Stochastic
+Volatility with Jumps (SVJ) model, which augments the Heston dynamics with a compound
+Poisson log-normal jump component. The SVJ model is calibrated on the same 1 December
+2021 snapshot, and its 8$\times$8 Hessian is subjected to the same spectral decomposition
+as the Heston model. This comparison quantifies whether explicitly modelling price jumps
+improves parameter identifiability or merely relocates the sloppy subspace.
+\end{abstract}
+
+% --- Table of contents ---
+\tableofcontents
+\listoffigures
+\lstlistoflistings
+
+% ============================================================
+%  CHAPTER 1 — DATA SOURCES
+% ============================================================
+\chapter{Data Sources}
+\label{ch:data}
+
+This chapter describes the datasets assembled for the calibration study. Four distinct
+sources are combined: implied volatility surfaces from the Bloomberg OVDV screen,
+front-month crude oil futures prices, the US Treasury yield curve, and a set of
+macroeconomic and market indicators used to contextualise the calibration results.
+Table~\ref{tab:data_overview} provides a consolidated overview of all series.
+
+\begin{table}[H]
+  \centering
+  \small
+  \caption{Data sources overview}
+  \label{tab:data_overview}
+  \begin{tabular}{lllll}
+    \toprule
+    Source                & Series / Ticker        & Coverage            & Freq.   & Purpose              \\
+    \midrule
+    Bloomberg OVDV        & COA (Brent, 6 tenors)  & Jan.\ 2006--Feb.\ 2026 & Daily & Option calibration   \\
+    Bloomberg OVDV        & CLA (WTI, 6 tenors)    & Jan.\ 2006--Feb.\ 2026 & Daily & Option calibration   \\
+    Bloomberg             & CO1 Comdty (Brent)     & Jan.\ 2006--Feb.\ 2026 & Daily & Forward / strikes    \\
+    Bloomberg             & CL1 Comdty (WTI)       & Jan.\ 2006--Feb.\ 2026 & Daily & Forward / strikes    \\
+    Bloomberg             & UST (1M, 3M, 6M, 1Y, 2Y) & Jan.\ 2006--Feb.\ 2026 & Daily & Risk-free rate   \\
+    Bloomberg             & OVX Index              & May 2007--Feb.\ 2026   & Daily & Market context       \\
+    Bloomberg             & VIX Index              & Jan.\ 2006--Feb.\ 2026 & Daily & Market context       \\
+    Bloomberg             & DXY Curncy             & Jan.\ 2006--Feb.\ 2026 & Daily & Market context       \\
+    Caldara \& Iacoviello & GPR Index              & Jan.\ 2006--Feb.\ 2026 & Daily & Market context       \\
+    EIA                   & US crude inventories   & Jan.\ 2006--present    & Weekly & Market context      \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+% -----------------------------------------------------------
+\section{Implied Volatility Surfaces}
+\label{sec:data_surfaces}
+% -----------------------------------------------------------
+
+The primary input to the calibration is the market implied volatility surface, extracted
+from the Bloomberg OVDV screen. OVDV is a standardised volatility surface product that
+Bloomberg constructs by fitting a smooth surface to listed and OTC option prices; it
+is the standard reference for oil options practitioners. For Brent crude, the relevant
+ticker is \textbf{COA Comdty} (options on Brent ICE futures); for WTI, it is
+\textbf{CLA Comdty} (options on WTI NYMEX futures).
+
+The surface is parameterised in \emph{moneyness} space rather than delta space, which
+avoids the need for a delta model and aligns naturally with the calibration framework.
+Six constant-maturity tenors are extracted:
+
+\begin{center}
+  1 month (1M),\quad 2 months (2M),\quad 3 months (3M),\quad
+  6 months (6M),\quad 12 months (12M),\quad 24 months (24M).
+\end{center}
+
+At each tenor, implied volatilities are reported at seven moneyness levels defined
+relative to the contemporaneous forward price $F$:
+\begin{equation}
+  m_j \in \{90\%,\; 95\%,\; 97.5\%,\; 100\%,\; 102.5\%,\; 105\%,\; 110\%\}
+  \label{eq:moneyness_grid}
+\end{equation}
+The full grid therefore contains $6 \times 7 = 42$ implied volatility points per
+underlying per day. Bloomberg delivers the data as a BDH export with one Excel sheet
+per tenor, values expressed as annualised implied volatilities in percent (e.g.\ 32.81
+means $32.81\%$ per annum).
+
+Data were downloaded using the Bloomberg Excel \texttt{BDH} (Bloomberg Data History)
+function, which retrieves a historical time series for a given security and set of
+fields. The query for the 1-month Brent surface takes the form:
+
+\begin{lstlisting}[language={}, basicstyle=\ttfamily\scriptsize,
+                   lineskip=-2pt, breaklines=true,
+                   caption={Bloomberg BDH query for the 1-month Brent implied
+                            volatility surface (Excel formula).},
+                   label={lst:bdh}]
+=BDH("COA Comdty",
+     "1ST_MTH_IMPVOL_80%MNY_DF,
+      1ST_MTH_IMPVOL_90.0%MNY_DF,
+      1ST_MTH_IMPVOL_95.0%MNY_DF,
+      1ST_MTH_IMPVOL_97.5%MNY_DF,
+      1ST_MTH_IMPVOL_100.0%MNY_DF,
+      1ST_MTH_IMPVOL_102.5%MNY_DF,
+      1ST_MTH_IMPVOL_105.0%MNY_DF,
+      1ST_MTH_IMPVOL_110.0%MNY_DF,
+      1ST_MTH_IMPVOL_120%MNY_DF",
+     "01/01/2006", "02/19/2026")
+\end{lstlisting}
+
+The field prefix \texttt{1ST\_MTH} identifies the front-month (1M) tenor; equivalent
+queries for the remaining tenors substitute \texttt{2ND\_MTH}, \texttt{3RD\_MTH},
+\texttt{6TH\_MTH}, \texttt{12TH\_MTH}, and \texttt{24TH\_MTH} respectively.
+For WTI the security identifier is replaced by \texttt{CLA Comdty}; all field names
+remain identical.
+The raw pull retrieves \emph{nine} moneyness levels per tenor (80\%--120\%); the
+outermost wings (80\% and 120\%) are excluded during quality filtering
+(Chapter~\ref{ch:loading}), leaving the seven-point grid of
+equation~\eqref{eq:moneyness_grid}.
+
+The sample runs from 3 January 2006 to 19 February 2026, yielding approximately
+4,830 trading days for Brent (COA) and 5,030 for WTI (CLA). With 42 implied
+volatility points per day (6 tenors $\times$ 7 moneyness levels), the raw surface data
+comprises \textbf{198,470 observations for Brent} and \textbf{210,385 for WTI} prior to
+any quality filtering. Table~\ref{tab:surface_summary} summarises the surface data.
+
+\begin{table}[H]
+  \centering
+  \caption{Implied volatility surface data summary}
+  \label{tab:surface_summary}
+  \begin{tabular}{lrrrrrr}
+    \toprule
+    Underlying & Bloomberg & Tenors & Moneyness & Obs./day & Trading days & Total obs. \\
+    \midrule
+    Brent (CO1) & COA Comdty & 6 (1M–24M) & 7 (90\%–110\%) & 42 & $\approx 4{,}830$ & $198{,}470$ \\
+    WTI   (CL1) & CLA Comdty & 6 (1M–24M) & 7 (90\%–110\%) & 42 & $\approx 5{,}030$ & $210{,}385$ \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+Two stylised facts characterise the crude oil volatility surface and are illustrated in
+Figure~\ref{fig:atm_structure}. First, the ATM term structure is strongly downward
+sloping: short-dated implied volatility (around 45--48\% at 1M) is substantially higher
+than long-dated volatility (around 24--25\% at 24M), reflecting the mean-reverting
+nature of oil prices. Second, the 1-month moneyness smile is \emph{positively} skewed —
+implied volatility increases from left to right across the moneyness grid — indicating
+that the market assigns a premium to OTM calls relative to OTM puts. This upside
+premium reflects the market's expectation of sudden supply-shock driven price spikes
+(geopolitical events, OPEC decisions), a feature absent in equity markets where the
+leverage effect creates the opposite pattern.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth]{atm_term_structure.png}
+  \caption{Market implied volatility structure on 19 February 2026.
+           \textit{Left:} ATM term structure (moneyness = 100\%) for Brent (CO1, seagreen)
+           and WTI (CL1, steelblue). \textit{Right:} 1-month moneyness smile for both
+           underlyings. Source: Bloomberg OVDV.}
+  \label{fig:atm_structure}
+\end{figure}
+
+% -----------------------------------------------------------
+\section{Crude Oil Futures Prices}
+\label{sec:data_futures}
+% -----------------------------------------------------------
+
+The calibration requires knowing the contemporaneous forward price $F$ for each option.
+We use the front-month futures contract as a proxy: \textbf{CO1 Comdty} (Brent ICE
+front-month) and \textbf{CL1 Comdty} (WTI NYMEX front-month). These are continuous
+rolling contracts constructed by Bloomberg that splice successive front-month settlements.
+Daily settlement prices are collected over the same sample period as the vol surfaces,
+yielding approximately 5,200 observations per series.
+
+\begin{table}[H]
+  \centering
+  \caption{Crude oil futures price data summary}
+  \label{tab:futures_summary}
+  \begin{tabular}{lllll}
+    \toprule
+    Contract & Underlying  & Exchange & Sample              & Observations \\
+    \midrule
+    CO1 Comdty & Brent crude & ICE (London)   & Jan.\ 2006--Feb.\ 2026 & $\approx 5{,}200$ \\
+    CL1 Comdty & WTI crude   & NYMEX (New York) & Jan.\ 2006--Feb.\ 2026 & $\approx 5{,}200$ \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+The futures price serves a dual role in the pipeline: it provides the forward price $F$
+needed to convert moneyness levels into absolute strikes ($K = m \times F$), and it
+enters the Black-76 option pricing formula as the underlying. Figure~\ref{fig:price_evolution}
+displays the full price history. The two benchmarks co-move closely, with Brent
+typically at a modest premium to WTI. Key episodes visible in the series include the
+2008 financial crisis (prices fell from a record \$147 to below \$40), the 2014--2016
+supply glut (Saudi Arabia maintained output despite falling prices), the COVID-19 crash
+of March 2020 (WTI briefly traded negative on 20 April 2020 due to storage constraints),
+and the 2022 energy shock following the Russian invasion of Ukraine.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth]{price_evolution.png}
+  \caption{Brent (CO1) and WTI (CL1) front-month futures prices, VIX and OVX volatility
+           indices, January 2006 -- February 2026. Source: Bloomberg.}
+  \label{fig:price_evolution}
+\end{figure}
+
+% -----------------------------------------------------------
+\section{Risk-Free Rate}
+\label{sec:data_rfr}
+% -----------------------------------------------------------
+
+Options on futures require discounting at the risk-free rate $r$ over the option's
+remaining maturity. We use US Treasury constant-maturity yields obtained from Bloomberg,
+which provide a daily market-implied curve. Five tenors are extracted to span the
+maturity range of the option data:
+\begin{center}
+  1 month,\quad 3 months,\quad 6 months,\quad 1 year,\quad 2 years.
+\end{center}
+
+Bloomberg delivers multi-series BDH exports in an interleaved format, with each tenor
+occupying a separate pair of columns (date column followed by yield column). For option
+maturities that fall between two extracted tenors (e.g.\ the 2-month option maturity
+falls between the 1-month and 3-month tenors), the risk-free rate is obtained by linear
+interpolation across the yield curve. This ensures that each option observation is
+discounted at a maturity-matched rate rather than a single scalar.
+
+\begin{table}[H]
+  \centering
+  \caption{US Treasury yield curve data}
+  \label{tab:ust_summary}
+  \begin{tabular}{llll}
+    \toprule
+    Tenor & Bloomberg ticker & Maturity in years & Interpolated to option tenors \\
+    \midrule
+    1 month  & USGG1M Index & $1/12$  & 1M option \\
+    3 months & USGG3M Index & $3/12$  & 2M, 3M options (direct + interpolation) \\
+    6 months & USGG6M Index & $6/12$  & 6M option \\
+    1 year   & USGG12M Index & $1.0$ & 12M option \\
+    2 years  & USGG2Y Index & $2.0$  & 24M option \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+% -----------------------------------------------------------
+\section{Macroeconomic and Market Indicators}
+\label{sec:data_macro}
+% -----------------------------------------------------------
+
+To provide broader market context, we collect five additional series:
+
+\begin{itemize}
+  \item \textbf{OVX} (CBOE Crude Oil Volatility Index): the VIX equivalent for WTI
+        crude oil, computed from 30-day ATM options on the United States Oil Fund (USO).
+        Available from 10 May 2007, OVX provides a real-time market expectation of
+        30-day oil price volatility and serves as a natural benchmark for the ATM implied
+        volatility extracted from the OVDV surface.
+  \item \textbf{VIX} (CBOE Volatility Index): the standard measure of equity market
+        implied volatility, included to capture cross-asset risk-off episodes that
+        spill over into commodity markets.
+  \item \textbf{DXY} (ICE US Dollar Index): since crude oil is globally priced in US
+        dollars, a stronger dollar tends to suppress oil demand from non-dollar economies,
+        creating a systematic negative correlation between DXY and oil prices.
+  \item \textbf{Geopolitical Risk Index}: the daily index of \citet{caldara2022},
+        constructed from automated text searches of major newspaper archives. Spikes
+        correspond to events such as the 2003 Iraq War, the 2011 Arab Spring, and the
+        2022 Russia-Ukraine conflict.
+  \item \textbf{US crude oil inventories} (EIA, weekly): total commercial crude stocks
+        reported each Wednesday by the US Energy Information Administration. Both the
+        level and the weekly change are stored, as unexpected inventory builds or draws
+        are primary short-term drivers of oil price volatility.
+\end{itemize}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth]{macro_indicators.png}
+  \caption{Macroeconomic and oil market indicators: OVX (top), geopolitical risk index
+           of \citet{caldara2022} (second), weekly oil inventory changes (third), and
+           total US crude oil inventory level (bottom).
+           Source: Bloomberg; \citet{caldara2022}; EIA.}
+  \label{fig:macro_indicators}
+\end{figure}
+
+% ============================================================
+%  CHAPTER 2 — DATA LOADING AND CLEANING
+% ============================================================
+\chapter{Data Loading and Cleaning}
+\label{ch:loading}
+
+This chapter details the data pipeline implemented in \texttt{surface\_loader.py}.
+Starting from raw Bloomberg Excel exports, the pipeline performs five sequential
+operations: loading and parsing the vol surface sheets, loading futures prices,
+computing strikes from moneyness, interpolating the risk-free rate, and assembling
+the final calibration-ready dataset. The output is a \texttt{pandas} DataFrame of
+407{,}679 rows covering both underlyings from 4 January 2006 to 19 February 2026,
+with no missing values in any of the nine required fields.
+
+% -----------------------------------------------------------
+\section{Loading the Implied Volatility Surfaces}
+\label{sec:loading_surfaces}
+% -----------------------------------------------------------
+
+Each Bloomberg OVDV export consists of one Excel workbook with six sheets (one per
+tenor). Within each sheet, the first row is a Bloomberg metadata header (ticker and
+field name) that is discarded; the second row contains column labels (a \texttt{Date}
+label followed by seven moneyness levels); and data begins on the third row. Because
+Bloomberg may represent the 97.5\% and 102.5\% moneyness columns as strings
+(\texttt{"97.5\%"}) or as floating-point numbers ($0.975$ or $97.5$), a normalisation
+helper is applied to unify all representations to a decimal fraction in $[0, 2]$:
+
+\begin{lstlisting}[caption={Moneyness column header normalisation
+                   (\texttt{surface\_loader.py})},
+                   label={lst:parse_moneyness}]
+def _parse_moneyness(val) -> float:
+    """Normalise a moneyness header to a decimal fraction.
+    Handles: 0.975, '0.975', '97.5%', 97.5, '97.5'
+    """
+    try:
+        s = str(val).strip().replace('%', '').replace('\xa0', '')
+        f = float(s)
+        return f / 100 if f > 5 else f  # '97.5' -> 0.975; '0.975' -> 0.975
+    except (ValueError, TypeError):
+        return np.nan
+\end{lstlisting}
+
+The surface loading function opens the workbook once via \texttt{pd.ExcelFile} to avoid
+repeatedly reading the file from disk, then iterates over all six tenor sheets. For
+each sheet, a \texttt{dropna(how=`all')} call removes the all-\texttt{NaN} Bloomberg
+metadata row, leaving the column-header row as \texttt{iloc[0]} and the data as
+\texttt{iloc[1:]}. Implied volatility values are converted from percent to decimal by
+dividing by 100:
+
+\begin{lstlisting}[caption={Loading and reshaping one vol surface Excel file into
+                   long-format (\texttt{surface\_loader.py})},
+                   label={lst:load_surface}]
+def load_vol_surface(filepath, underlying_code):
+    prefix = "COA" if underlying_code == "CO1" else "CLA"
+    xls = pd.ExcelFile(filepath)
+
+    frames = []
+    for tenor, sheet in zip(TENORS, SHEET_NAMES):
+        raw  = pd.read_excel(xls, sheet_name=sheet, header=None)
+        raw  = raw.dropna(how='all').reset_index(drop=True)
+        # Row 0: column headers; Rows 1+: data
+        header_row = raw.iloc[0]
+        data       = raw.iloc[1:].reset_index(drop=True)
+
+        dates = pd.to_datetime(data.iloc[:, 1], errors='coerce').dt.normalize()
+
+        for ci in range(2, min(9, raw.shape[1])):
+            m = _parse_moneyness(header_row.iloc[ci])
+            if np.isnan(m) or not (0.5 <= m <= 2.0):
+                continue
+            ivol_dec = pd.to_numeric(data.iloc[:, ci], errors='coerce') / 100
+            frames.append(pd.DataFrame({
+                "Date": dates, "Underlying": underlying_code,
+                "Maturity": TENOR_MAP[tenor],
+                "Moneyness": round(m, 4), "ImpliedVol": ivol_dec,
+            }))
+
+    df = pd.concat(frames, ignore_index=True)
+    return df.dropna(subset=["Date", "ImpliedVol"]).sort_values(
+        ["Date", "Maturity", "Moneyness"]
+    ).reset_index(drop=True)
+\end{lstlisting}
+
+The function returns a long-format DataFrame with five columns:
+\texttt{Date}, \texttt{Underlying}, \texttt{Maturity} (in years),
+\texttt{Moneyness}, and \texttt{ImpliedVol} (in decimal form).
+After applying this function to both the COA (Brent) and CLA (WTI) files, the combined
+surface DataFrame contains 408{,}855 rows before the subsequent merging steps.
+
+Figures~\ref{fig:surface_brent} and~\ref{fig:surface_wti} display the full market
+implied volatility surfaces for Brent and WTI on the most recent available date,
+19 February 2026. The surfaces exhibit the positive moneyness skew and downward
+term structure discussed in Chapter~\ref{ch:data}, and it is the task of the Heston
+model (Chapter~\ref{ch:methodology}) to fit this structure with five parameters.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.9\textwidth]{market_surface_brent.png}
+  \caption{Bloomberg market implied volatility surface for Brent crude (CO1) on
+           19 February 2026. Coloured mesh: OVDV surface interpolated over the
+           $6 \times 7$ grid. Red points: observed market data.
+           Source: Bloomberg OVDV (COA Comdty).}
+  \label{fig:surface_brent}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.9\textwidth]{market_surface_wti.png}
+  \caption{Bloomberg market implied volatility surface for WTI crude (CL1) on
+           19 February 2026. Same conventions as Figure~\ref{fig:surface_brent}.
+           Source: Bloomberg OVDV (CLA Comdty).}
+  \label{fig:surface_wti}
+\end{figure}
+
+% -----------------------------------------------------------
+\section{Loading Futures Prices and Computing Strikes}
+\label{sec:loading_futures}
+% -----------------------------------------------------------
+
+The \texttt{Data-Hardcodded.xlsx} workbook contains, among other series, the daily
+settlement prices for CO1 and CL1 on separate sheets. Each sheet follows the standard
+Bloomberg BDH single-series layout: one empty metadata row, one header row, and data
+from the third row onward, with dates in column B and prices in column C.
+
+\begin{lstlisting}[caption={Loading front-month futures prices from
+                   \texttt{Data-Hardcodded.xlsx} (\texttt{surface\_loader.py})},
+                   label={lst:load_futures}]
+def load_new_futures(filepath):
+    def _load_sheet(sheet_name, col_label):
+        raw  = pd.read_excel(filepath, sheet_name=sheet_name, header=None)
+        data = raw.dropna(how='all').iloc[2:].reset_index(drop=True)
+        sub  = pd.DataFrame({
+            "Date":    pd.to_datetime(data.iloc[:, 1], errors='coerce'),
+            col_label: pd.to_numeric(data.iloc[:, 2], errors='coerce'),
+        }).dropna()
+        return sub[sub["Date"] >= "1980-01-01"]   # drop corrupt serial-date rows
+
+    brent = _load_sheet("Brent Futures", "CO1")
+    wti   = _load_sheet("WTI Futures",   "CL1")
+    return brent.merge(wti, on="Date", how="outer").sort_values("Date")
+\end{lstlisting}
+
+The \texttt{>= 1980-01-01} filter silently drops a known corrupt entry in the WTI sheet
+where a Bloomberg export artefact encoded a date as Excel serial number 67
+(corresponding to 7 March 1900). Because the vol surface data begins only in January
+2006, the filter has no effect on the usable data range.
+
+Once futures prices are available, strikes are computed by a simple merge and
+multiplication:
+\begin{equation}
+  K_{i} = m_j \times F_t
+  \label{eq:strike_calc}
+\end{equation}
+where $m_j$ is the moneyness level from the OVDV grid \eqref{eq:moneyness_grid} and
+$F_t$ is the front-month futures settlement price on date $t$. This operation converts
+the moneyness-quoted vol surface into an absolute-strike vol surface, which is required
+by the Black-76 and Heston pricers. On days where a vol surface observation exists but
+no futures settlement is available (typically non-trading days in one market), the row
+is silently dropped; this affects 1{,}176 observations ($0.3\%$ of raw surface rows).
+
+% -----------------------------------------------------------
+\section{Risk-Free Rate Interpolation}
+\label{sec:loading_rfr}
+% -----------------------------------------------------------
+
+The Bloomberg BDH export for the yield curve is unusual in structure: when multiple
+series are requested in a single query, Bloomberg writes them side by side in an
+interleaved pattern, with each tenor occupying a date column followed by a yield column,
+separated by an empty column. The five tenors (1M, 3M, 6M, 1Y, 2Y) therefore occupy
+column pairs at 0-based indices $(1,2)$, $(4,5)$, $(7,8)$, $(10,11)$, and $(13,14)$
+of the exported worksheet:
+
+\begin{lstlisting}[caption={Parsing the interleaved Bloomberg UST multi-series export
+                   (\texttt{surface\_loader.py})},
+                   label={lst:load_ust}]
+UST_TENORS    = ["1M", "3M", "6M", "1Y", "2Y"]
+UST_COL_PAIRS = [(1, 2), (4, 5), (7, 8), (10, 11), (13, 14)]
+
+def load_ust_curve(filepath):
+    raw  = pd.read_excel(filepath, sheet_name="USTs", header=None)
+    data = raw.dropna(how='all').iloc[2:].reset_index(drop=True)
+    frames = []
+    for tenor, (date_col, val_col) in zip(UST_TENORS, UST_COL_PAIRS):
+        dates = pd.to_datetime(data.iloc[:, date_col], errors='coerce')
+        rates = pd.to_numeric(data.iloc[:, val_col],   errors='coerce') / 100
+        sub   = pd.DataFrame({"Date": dates, "tenor": tenor, "rate": rates})
+        frames.append(sub.dropna())
+    return pd.concat(frames, ignore_index=True).sort_values(["Date", "tenor"])
+\end{lstlisting}
+
+For each option maturity $T$ (in years), the risk-free rate is obtained by linear
+interpolation across the five extracted tenor points:
+
+\begin{lstlisting}[caption={Linear interpolation of the UST yield curve to
+                   option maturities (\texttt{surface\_loader.py})},
+                   label={lst:interp_rfr}]
+def _interp_rfr_for_maturity(pivot, t_years, mat_years):
+    """Return a Series of interpolated rates indexed by Date."""
+    rates  = pivot.values          # shape (n_dates, n_tenors)
+    result = np.array([np.interp(mat_years, t_years, row) for row in rates])
+    return pd.Series(result, index=pivot.index)
+\end{lstlisting}
+
+Maturities at or beyond the 2-year boundary are clamped to the 2-year rate (the
+\texttt{np.interp} default). On the 5{,}775 dates where no yield curve observation
+is available but a vol surface observation exists (public holidays and other
+non-trading days in the Treasury market), the risk-free rate is imputed by
+forward-filling the most recently observed rate within each (underlying, maturity) group,
+followed by backward-fill for any remaining gaps at the start of the sample. After this
+imputation, no missing risk-free rate observations remain in the final dataset.
+
+% -----------------------------------------------------------
+\section{Final Dataset}
+\label{sec:final_dataset}
+% -----------------------------------------------------------
+
+The five processing steps — surface loading, futures loading, strike calculation,
+UST loading, and RFR interpolation — are orchestrated by the \texttt{build\_options\_df}
+function, which assembles and returns the calibration-ready DataFrame in a single call:
+
+\begin{lstlisting}[caption={Top-level data assembly function
+                   (\texttt{surface\_loader.py})},
+                   label={lst:build_df}]
+def build_options_df(coa_surface_file=COA_FILE,
+                     cla_surface_file=CLA_FILE,
+                     macro_file=MACRO_FILE,
+                     start_date=None, end_date=None):
+    # 1. Load vol surfaces -> long format
+    coa_df = load_vol_surface(coa_surface_file, "CO1")
+    cla_df = load_vol_surface(cla_surface_file, "CL1")
+    surface_df = pd.concat([coa_df, cla_df], ignore_index=True)
+
+    # 2. Merge futures: Strike = Moneyness * SpotPrice
+    futures_df = load_new_futures(macro_file)
+    surface_df = surface_df.merge(fut_long, on=["Date", "Underlying"], how="left")
+    surface_df["Strike"] = surface_df["Moneyness"] * surface_df["SpotPrice"]
+
+    # 3. Interpolate RFR for each (Date, Maturity) pair
+    ust_df = load_ust_curve(macro_file)
+    pivot, t_years = _build_rfr_pivot(ust_df)
+    for mat in surface_df["Maturity"].unique():
+        rfr_series = _interp_rfr_for_maturity(pivot, t_years, mat)
+        # ... merge back
+
+    surface_df["OptionType"]  = "C"
+    surface_df["OptionPrice"] = np.nan
+    return surface_df[OUT_COLS].dropna(subset=["Strike", "SpotPrice"])
+\end{lstlisting}
+
+After assembly and cleaning, the final dataset comprises \textbf{407{,}679 rows}
+covering \textbf{both underlyings} (CO1 and CL1), \textbf{six maturities}
+($1/12$, $2/12$, $3/12$, $1/2$, $1$, and $2$ years), \textbf{seven moneyness levels}
+(90\% to 110\%), and \textbf{approximately 4{,}870 trading days} from 4 January 2006
+to 19 February 2026. The nine required fields — \texttt{Date}, \texttt{Underlying},
+\texttt{Strike}, \texttt{Maturity}, \texttt{OptionType}, \texttt{ImpliedVol},
+\texttt{OptionPrice}, \texttt{SpotPrice}, and \texttt{RiskFreeRate} — contain no
+missing values after the imputation steps described above.
+
+Figure~\ref{fig:atm_history} shows the time series of 1-month ATM implied volatility
+for both underlyings over the full sample. The series exhibits the characteristic
+features of energy market volatility: long stretches of moderate volatility (20--40\%)
+punctuated by sharp spikes during the 2008 financial crisis (up to 120\%), the 2014
+supply glut (elevated for an extended period), the COVID-19 shock of March 2020
+(briefly exceeding 150\% for WTI, reflecting the extreme dislocation in the futures
+market when front-month WTI traded at negative prices), and the 2022 Ukraine-related
+energy shock.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth]{atm_vol_history.png}
+  \caption{1-month ATM ($m = 100\%$) implied volatility for Brent (CO1, seagreen) and
+           WTI (CL1, steelblue), January 2006 -- February 2026. Dashed vertical lines
+           mark key market events. Source: Bloomberg OVDV.}
+  \label{fig:atm_history}
+\end{figure}
+
+% ============================================================
+%  SECTION 2.6 — SMILE STYLISED FACTS
+% ============================================================
+\section{Smile Stylised Facts}
+\label{sec:smile_stylised}
+
+The assembled dataset reveals three robust empirical regularities in the implied
+volatility surface of crude oil options. These stylised facts motivate both the
+choice of the Heston stochastic volatility model and the subsequent Hessian
+spectral analysis of its calibration landscape.
+
+% --- 2.6.1 Average Smile Shape ---
+\subsection{Average Smile Shape}
+
+Figure~\ref{fig:avg_smile_shape} shows the time-averaged implied volatility smile
+expressed as a deviation from the at-the-money level,
+$\Delta\sigma(m) = \sigma(m) - \sigma_{\mathrm{ATM}}$,
+for each of the six constant-maturity tenors. Shaded bands denote $\pm 1$ standard
+deviation across trading days. Across both Brent and WTI, the smile is
+systematically asymmetric: the right wing (out-of-the-money calls, $m > 1$) is
+consistently elevated above ATM, while the left wing (out-of-the-money puts,
+$m < 1$) sits below it. This \emph{positive skew} — the structural opposite of the
+leverage effect documented in equity markets — reflects the market's persistent
+premium for upside optionality in crude oil. Geopolitical supply disruptions and
+OPEC production decisions generate non-trivial probability mass for large upside
+price moves, inducing higher demand for OTM calls than OTM puts. This finding is
+consistent with the positive spot-variance correlation $\hat{\rho} \approx +0.77$
+(Brent) and $\hat{\rho} \approx +0.81$ (WTI) recovered in Chapter~\ref{ch:methodology}.
+The positive skew is most pronounced at short maturities (1M) and attenuates at
+longer tenors, consistent with mean-reversion damping transient supply shocks over
+time.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth]{avg_smile_shape.png}
+  \caption{Time-averaged implied volatility smile shape for Brent (CO1, left) and
+           WTI (CL1, right), 2006--2026. Each line shows
+           $\Delta\sigma(m) = \sigma(m) - \sigma_{\mathrm{ATM}}$ averaged over all
+           trading days for a given maturity; shaded bands indicate $\pm 1$ standard
+           deviation. The systematic elevation of the right wing relative to the
+           left wing reflects crude oil's structural positive skew (upside call
+           premium). Source: Bloomberg OVDV.}
+  \label{fig:avg_smile_shape}
+\end{figure}
+
+% --- 2.6.2 Crisis-Period Smile Distortions ---
+\subsection{Crisis-Period Smile Distortions}
+
+Figure~\ref{fig:crisis_smile} illustrates how the smile deforms across all six
+maturities during selected market stress episodes, relative to a calm-period
+baseline (June--August 2012). Each panel in the $2 \times 6$ grid shows
+$\Delta\sigma(m)$ for a given underlying and maturity, with five overlaid curves
+representing the five market regimes.
+
+Three qualitatively distinct deformation patterns emerge. During the
+\textbf{Global Financial Crisis} (October 2008), demand-side collapse risk
+elevated the left wing across all maturities, steepening the smile while broadly
+inflating the level of uncertainty. The \textbf{Supply Glut} of January 2016
+produced a strong left-wing spike at short maturities as the market priced the
+risk of further steep price declines in an oversupplied market. The
+\textbf{COVID-19} shock of April 2020 — particularly stark given the
+extraordinary negative settlement of WTI front-month futures on 20 April 2020 —
+produced the sharpest left-wing distortion in the sample, as put demand surged on
+fears of physical storage constraints and demand destruction. Conversely, the
+\textbf{Ukraine} shock of March 2022 amplified the right wing across short
+maturities, reflecting a supply-disruption premium and elevated probability of
+further upside price moves from energy sanctions.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth]{crisis_smile_distortion.png}
+  \caption{Implied volatility smile deformation,
+           $\Delta\sigma(m) = \sigma(m) - \sigma_{\mathrm{ATM}}$ [vol pts],
+           across all six maturities (columns) for Brent CO1 (top row) and
+           WTI CL1 (bottom row) during four market stress episodes and a
+           calm baseline (June--August 2012). Source: Bloomberg OVDV.}
+  \label{fig:crisis_smile}
+\end{figure}
+
+% --- 2.6.3 Risk Reversal Dynamics ---
+\subsection{Risk Reversal Dynamics}
+
+Figure~\ref{fig:risk_reversal} plots the 1M and 3M risk reversal proxy
+$\mathrm{RR}(m) = \sigma(110\%) - \sigma(90\%)$ over the full 2006--2026 sample.
+Positive values indicate that equidistant OTM calls are more expensive than puts
+(upside premium), while negative values signal that downside protection dominates.
+
+Under normal conditions both underlyings exhibit a persistently positive risk
+reversal, confirming the structural upside premium identified in the average smile
+analysis. The 1M reversal is more volatile than the 3M, reflecting the larger
+impact of near-term event risk on the short end of the term structure. Two
+prominent sign reversals are visible: the COVID-19 episode (March--May 2020) drove
+both risk reversals sharply negative as put demand overwhelmed call buying, and
+the supply-glut period (2015--2016) produced a sustained period of near-zero or
+negative reversal for WTI. The Ukraine war spike (2022) restored strongly positive
+reversals as supply-side uncertainty reignited call premiums.
+
+This time-varying skew direction — flipping sign between supply- and
+demand-driven crises — presents a fundamental challenge for any single-regime
+stochastic volatility model: the Heston model must fit qualitatively different
+smile shapes (positive and negative skew) with a fixed parameter vector, which
+manifests as poor local identifiability in the spectral analysis of the
+calibration Hessian presented in Chapter~\ref{ch:hessian}.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth]{risk_reversal_ts.png}
+  \caption{1M (solid) and 3M (dashed) risk reversal proxy
+           $\sigma(110\%) - \sigma(90\%)$ [vol pts] for Brent CO1 (top) and
+           WTI CL1 (bottom), 2006--2026. Positive values indicate a call
+           premium (upside risk); negative values indicate a put premium
+           (downside fear). Annotated events as in Figure~\ref{fig:atm_history}.
+           Source: Bloomberg OVDV.}
+  \label{fig:risk_reversal}
+\end{figure}
+
+% ============================================================
+%  CHAPTER 3 — METHODOLOGY
+% ============================================================
+\chapter{Methodology}
+\label{ch:methodology}
+
+\section{The Heston Stochastic Volatility Model}
+
+We model crude oil futures prices under the risk-neutral measure using the stochastic
+volatility framework of \citet{heston1993}. Let $S_t$ denote the futures price and
+$V_t$ its instantaneous variance. The joint dynamics are:
+
+\begin{align}
+  dS_t &= \mu S_t\,dt + \sqrt{V_t}\,S_t\,dW_t^1 \label{eq:heston_S} \\
+  dV_t &= \kappa(\theta - V_t)\,dt + \sigma\sqrt{V_t}\,dW_t^2 \label{eq:heston_V}
+\end{align}
+
+where $dW_t^1$ and $dW_t^2$ are correlated Brownian motions with
+$\mathrm{d}W_t^1\,\mathrm{d}W_t^2 = \rho\,dt$. The model has five parameters,
+described in Table~\ref{tab:heston_params}.
+
+\begin{table}[H]
+  \centering
+  \caption{Heston model parameters}
+  \label{tab:heston_params}
+  \begin{tabular}{clll}
+    \toprule
+    Parameter & Symbol & Economic interpretation & Calibration bounds \\
+    \midrule
+    Mean-reversion speed   & $\kappa$ & Speed at which variance reverts to $\theta$ & $[0.01,\;20]$       \\
+    Long-run variance      & $\theta$ & Unconditional variance; $\sqrt{\theta}$ = long-run vol & $[0.001,\;2]$ \\
+    Vol of vol             & $\sigma$ & Volatility of the variance process          & $[0.01,\;2]$        \\
+    Spot-variance corr.    & $\rho$   & Leverage effect; typically negative in equities & $[-0.999,\;0.999]$ \\
+    Initial variance       & $v_0$    & Variance at calibration date; $\sqrt{v_0}$ = initial vol & $[0.001,\;2]$ \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\subsection{Feller Condition}
+
+For the variance process \eqref{eq:heston_V} to remain strictly positive almost surely,
+the following condition must hold:
+\begin{equation}
+  2\kappa\theta \geq \sigma^2
+  \label{eq:feller}
+\end{equation}
+This is the Feller condition. In practice, we do not impose it as a hard constraint
+during optimisation, as doing so can prevent the algorithm from reaching the global
+minimum. Instead, we report whether it is satisfied as a diagnostic after calibration.
+
+\subsection{Crude Oil Context: The Sign of Correlation}
+\label{sec:heston_oil}
+
+In equity markets the spot-variance correlation $\rho$ is typically negative
+(the \emph{leverage effect}): falling prices are accompanied by rising volatility.
+In crude oil markets, the historical norm has been the opposite.
+Over most of the 2006--2022 sample, the calibrated $\rho$ is negative
+($\hat{\rho} \approx -0.80$ for Brent and $-0.77$ for WTI on the static date of
+1 December 2021), reflecting \emph{put-skew dominance}: out-of-the-money puts carry
+higher implied volatility than equidistant calls. This pattern is consistent with
+the demand-crash risk premium \citep{schwartz1997, trolle2009} — large downward
+price moves driven by demand collapses (as during COVID-19) or inventory gluts
+are the dominant tail risk for oil markets over the long run.
+
+Formally, a negative $\rho$ tilts the risk-neutral log-price distribution
+leftward, generating a downward-sloping smile (put skew). This is the stylised
+fact documented in Figure~\ref{fig:avg_smile_shape} for the time-averaged surface.
+
+\paragraph{The post-2022 call-skew inversion.}
+Since approximately mid-2022, the rolling calibration has consistently produced
+positive $\rho$ values (up to $+0.77$ for Brent and $+0.81$ for WTI as of
+early 2026), reflecting a persistent \emph{call-skew regime}. This inversion
+coincides with the Ukraine war supply shock and the subsequent structural
+tightening of global oil supply. Supply-driven upside risk — where price spikes
+and volatility co-move positively — generates the inverse leverage effect
+documented in commodity markets \citep{schwartz1997, trolle2009}.
+The rolling risk-reversal time series in Figure~\ref{fig:risk_reversal} shows
+this sign change clearly. Because the static analysis snapshot (1 December 2021)
+pre-dates this inversion, the calibrated correlation presented in this chapter
+reflects the historically dominant put-skew regime.
+
+\section{Risk-Neutral Valuation of Crude Oil Options}
+
+\subsection{Characteristic Function}
+
+The Heston model admits a semi-analytical characteristic function for $\log S_T$. Under
+the numerically stable formulation of \citet{lordkahl2010}, which avoids branch-cut
+discontinuities in complex logarithms, the characteristic function is:
+
+\begin{equation}
+  \varphi(u) = \exp\!\bigl(C(u,T)\,\theta + D(u,T)\,v_0
+               + iu\,(\ln S + rT)\bigr)
+  \label{eq:char_func}
+\end{equation}
+
+where the auxiliary functions $C$ and $D$ are:
+\begin{align}
+  \xi      &= \kappa - \rho\sigma i u \\
+  d        &= \sqrt{\xi^2 + \sigma^2 u(u+i)} \\
+  g        &= \frac{\xi - d}{\xi + d} \\
+  C(u,T)   &= \frac{\kappa}{\sigma^2}\!\left[(\xi-d)T
+              - 2\ln\!\frac{1 - g\,e^{-dT}}{1-g}\right] \\
+  D(u,T)   &= \frac{\xi-d}{\sigma^2}\cdot\frac{1 - e^{-dT}}{1 - g\,e^{-dT}}
+\end{align}
+
+The Python implementation follows this formulation directly, using NumPy's complex
+arithmetic to evaluate the characteristic function over the full frequency grid in a
+single vectorised operation:
+
+\begin{lstlisting}[caption={Heston characteristic function with Lord \& Kahl (2010)
+                   numerical stability rotation (\texttt{heston\_model.py})},
+                   label={lst:char_func}]
+def heston_char_func(u, S, T, r, kappa, theta, sigma, rho, v0):
+    i    = 1j
+    xi   = kappa - rho * sigma * i * u
+    d    = np.sqrt(xi**2 + sigma**2 * u * (u + i))
+    g    = (xi - d) / (xi + d)
+    exp_dT = np.exp(-d * T)
+
+    # Avoid division by zero when g * exp_dT -> 1
+    denom = 1.0 - g * exp_dT
+    denom = np.where(np.abs(denom) < 1e-14, 1e-14, denom)
+
+    C = kappa * ((xi - d) * T
+        - 2.0 * np.log(denom / (1.0 - g))) / sigma**2
+    D = ((xi - d) / sigma**2) * (1.0 - exp_dT) / denom
+
+    return np.exp(C * theta + D * v0 + i * u * (np.log(S) + r * T))
+\end{lstlisting}
+
+\subsection{Black-76 Formula}
+
+Since crude oil options are written on futures (not spot prices), we use the
+\citet{black1976} model as our baseline single-volatility pricer. The Black-76 call
+price is:
+
+\begin{equation}
+  C^{B76}(F,K,T,r,\sigma) = e^{-rT}\bigl[F\,\mathcal{N}(d_1) - K\,\mathcal{N}(d_2)\bigr]
+  \label{eq:black76}
+\end{equation}
+
+with:
+\begin{equation}
+  d_1 = \frac{\ln(F/K) + \tfrac{1}{2}\sigma^2 T}{\sigma\sqrt{T}}, \qquad
+  d_2 = d_1 - \sigma\sqrt{T}
+\end{equation}
+
+Implied volatilities are recovered from observed prices by numerically inverting
+equation~\eqref{eq:black76} using Brent's root-finding method:
+
+\begin{lstlisting}[caption={Black-76 implied volatility inversion via Brent's method
+                   (\texttt{heston\_model.py})},
+                   label={lst:black76_iv}]
+def black76_implied_vol(price, F, K, T, r, option_type="C"):
+    if option_type.upper() == "C":
+        pricer = lambda sig: black76_call(F, K, T, r, sig) - price
+        intrinsic = max(F - K, 0.0) * np.exp(-r * T)
+    else:
+        pricer = lambda sig: black76_put(F, K, T, r, sig) - price
+        intrinsic = max(K - F, 0.0) * np.exp(-r * T)
+
+    if price <= intrinsic + 1e-8:
+        return np.nan  # price at or below intrinsic: no solution
+
+    try:
+        return brentq(pricer, 1e-6, 5.0, xtol=1e-8, maxiter=200)
+    except (ValueError, RuntimeError):
+        return np.nan
+\end{lstlisting}
+
+\subsection{Carr-Madan FFT Pricing}
+
+To price options at a grid of strikes simultaneously — which is essential for
+calibration efficiency — we use the fast Fourier transform approach of
+\citet{carrmadan1999}. The damped Fourier transform of the call price is:
+
+\begin{equation}
+  \psi(v) = \frac{e^{-rT}\,\varphi\!\bigl(v - (\alpha+1)i\bigr)}
+                 {\alpha^2 + \alpha - v^2 + i(2\alpha+1)v}
+  \label{eq:cm_psi}
+\end{equation}
+
+where $\alpha > 0$ is a damping parameter (set to $\alpha = 1.5$). A single FFT call
+on a grid of $N = 4{,}096$ points recovers call prices across the full strike range.
+
+\begin{lstlisting}[caption={Carr-Madan FFT pricer: prices all strikes in one
+                   vectorised FFT call (\texttt{heston\_model.py})},
+                   label={lst:fft_pricer}]
+def heston_call_price_fft(S, K_array, T, r, kappa, theta, sigma, rho, v0,
+                           N=4096, eta=0.25, alpha=1.5):
+    v = np.arange(N) * eta
+    v[0] = 1e-14    # avoid division by zero at v = 0
+
+    # Evaluate characteristic function on Carr-Madan contour
+    u   = v - (alpha + 1) * 1j
+    phi = heston_char_func(u, S, T, r, kappa, theta, sigma, rho, v0)
+
+    # Damped call price transform (eq. cm_psi)
+    psi = (np.exp(-r * T) * phi /
+           (alpha**2 + alpha - v**2 + 1j * (2 * alpha + 1) * v))
+
+    # Simpson's rule weights for integration accuracy
+    simpson = (3 + (-1)**np.arange(N)
+               - np.where(np.arange(N) == 0, 1, 0)) / 3.0
+    x = np.exp(1j * np.arange(N) * np.pi) * psi * simpson * eta
+
+    fft_vals = np.real(np.fft.fft(x))
+
+    # Recover log-strike grid and interpolate to requested strikes
+    lambda_    = 2 * np.pi / (N * eta)
+    log_strikes = -N * lambda_ / 2 + lambda_ * np.arange(N)
+    call_prices = np.exp(-alpha * log_strikes) / np.pi * fft_vals
+
+    prices = np.interp(np.log(K_array), log_strikes, call_prices)
+    return np.maximum(prices, np.maximum(S - K_array, 0.0) * np.exp(-r * T))
+\end{lstlisting}
+
+\section{Calibration Procedure}
+
+\subsection{Data Selection}
+\label{sec:data_selection}
+
+On each calibration date, all options for the target underlying are extracted from
+the assembled Bloomberg surface (Section~\ref{sec:final_dataset}). Options whose
+moneyness falls outside $[0.70,\;1.30]$ are removed to exclude deep in-the-money
+and deep out-of-the-money strikes where liquidity is negligible and surface
+interpolation is unreliable. On the calibration date of 19 February 2026 this
+yields \textbf{42 observations per underlying} (7 moneyness levels $\times$ 6
+maturities, spanning 1-month to 24-month tenors). The risk-free rate applied to
+each option is the tenor-matched US Treasury yield interpolated from the live
+yield curve (Section~\ref{sec:loading_rfr}).
+
+\subsection{Objective Function}
+
+We calibrate the parameter vector $\Theta = (\kappa, \theta, \sigma, \rho, v_0)$ by
+minimising the vega-weighted mean squared error (MSE) between model and market implied
+volatilities:
+
+\begin{equation}
+  \mathcal{L}(\Theta) = \frac{\sum_{i=1}^{N} w_i \bigl(\sigma_i^{\text{model}}(\Theta)
+                         - \sigma_i^{\text{market}}\bigr)^2}{\sum_{i=1}^{N} w_i}
+  \label{eq:objective}
+\end{equation}
+
+Following \citet{conttankov2004}, we use vega-inspired weights that assign greater
+importance to at-the-money options, which are more liquidly traded:
+
+\begin{equation}
+  w_i = \exp\!\left(-\frac{(K_i/S - 1)^2}{2 \times 0.1^2}\right)
+\end{equation}
+
+\begin{lstlisting}[caption={Vega-weighted calibration objective function
+                   (\texttt{heston\_model.py})},
+                   label={lst:objective}]
+def calibration_objective(params, S, K_array, T_array, r,
+                           market_ivols, weights=None):
+    model_ivols = heston_implied_vol(params, S, K_array, T_array, r)
+    valid = ~np.isnan(model_ivols) & ~np.isnan(market_ivols)
+
+    if valid.sum() < 3:
+        return 1e6   # too few valid points: penalise heavily
+
+    diff = model_ivols[valid] - market_ivols[valid]
+
+    if weights is None:
+        # Gaussian ATM weights (vega-inspired)
+        moneyness    = K_array[valid] / S
+        weights_use  = np.exp(-0.5 * ((moneyness - 1.0) / 0.1)**2)
+    else:
+        weights_use = weights[valid]
+
+    return np.sum(weights_use * diff**2) / np.sum(weights_use)
+\end{lstlisting}
+
+\subsection{Two-Stage Optimisation}
+
+The MSE surface \eqref{eq:objective} is non-convex and exhibits multiple local minima.
+A single gradient-based call from an arbitrary starting point is therefore unreliable.
+We adopt a two-stage procedure:
+
+\begin{enumerate}
+  \item \textbf{Global search.} We apply differential evolution with a population of
+        15 individuals, 300 maximum iterations, and mutation rate in $[0.5, 1.5]$.
+        This provides a robust initial estimate near the global minimum.
+  \item \textbf{Local refinement.} Starting from the best solution found in Step 1,
+        we run L-BFGS-B with up to 1{,}000 iterations and gradient tolerance
+        $10^{-8}$ to obtain a precise local minimum.
+\end{enumerate}
+
+\begin{lstlisting}[caption={Two-stage Heston calibration: global differential
+                   evolution followed by L-BFGS-B refinement
+                   (\texttt{heston\_model.py})},
+                   label={lst:calibration}]
+def calibrate_heston(S, K_array, T_array, r, market_ivols, weights=None):
+    bounds = [
+        (0.01, 20.0),     # kappa: mean-reversion speed
+        (0.001, 2.0),     # theta: long-run variance
+        (0.01, 2.0),      # sigma: vol of vol
+        (-0.999, 0.999),  # rho:   spot-variance correlation
+        (0.001, 2.0),     # v0:    initial variance
+    ]
+    obj = lambda p: calibration_objective(
+        p, S, K_array, T_array, r, market_ivols, weights
+    )
+
+    # Stage 1: global search
+    de_result = differential_evolution(
+        obj, bounds, maxiter=300, seed=42,
+        popsize=15, mutation=(0.5, 1.5), recombination=0.7
+    )
+    # Stage 2: local refinement
+    local_result = minimize(
+        obj, de_result.x, method="L-BFGS-B", bounds=bounds,
+        options={"maxiter": 1000, "ftol": 1e-12, "gtol": 1e-8}
+    )
+
+    kappa, theta, sigma, rho, v0 = local_result.x
+    feller_val = 2 * kappa * theta - sigma**2
+    return {
+        "params": local_result.x,
+        "kappa": kappa, "theta": theta, "sigma": sigma,
+        "rho": rho, "v0": v0,
+        "mse": local_result.fun,
+        "rmse_volpts": np.sqrt(local_result.fun) * 100,
+        "feller": feller_val >= 0,
+        "feller_value": feller_val,
+    }
+\end{lstlisting}
+
+The calibration is performed separately for CO1 (Brent) and CL1 (WTI) on each
+calibration date.
+
+% ============================================================
+%  SECTION 3.4 — CALIBRATION RESULTS
+% ============================================================
+\section{Calibration Results}
+\label{sec:calibration_results}
+
+\subsection{Calibrated Parameters}
+
+Table~\ref{tab:calibrated_params} reports the calibrated parameter vector
+$\hat{\Theta} = (\hat{\kappa},\hat{\theta},\hat{\sigma},\hat{\rho},\hat{v}_0)$
+for Brent and WTI on 19 February 2026, together with the root-mean-squared error
+(RMSE) in implied volatility points and the Feller diagnostic.
+
+\begin{table}[H]
+  \centering
+  \caption{Heston calibration results for Brent (CO1) and WTI (CL1),
+           19 February 2026. RMSE expressed in implied volatility percentage points.
+           Feller value $= 2\hat{\kappa}\hat{\theta} - \hat{\sigma}^2$.}
+  \label{tab:calibrated_params}
+  \begin{tabular}{lrrl}
+    \toprule
+    Parameter & Brent (CO1) & WTI (CL1) & Interpretation \\
+    \midrule
+    $\hat{\kappa}$ & 4.775  & 2.384  & Mean-reversion speed of variance \\
+    $\hat{\theta}$ & 0.0363 & 0.0035 & Long-run variance ($\sqrt{\hat{\theta}}$: 19.1\%, 5.9\%) \\
+    $\hat{\sigma}$ & 1.589  & 0.763  & Volatility of volatility \\
+    $\hat{\rho}$   & $+$0.770 & $+$0.809 & Spot-variance correlation \\
+    $\hat{v}_0$    & 0.2143 & 0.1569 & Initial variance ($\sqrt{\hat{v}_0}$: 46.3\%, 39.6\%) \\
+    \midrule
+    RMSE (vol pts)                          & 1.68\% & 1.61\% & Calibration fit \\
+    Feller $2\hat{\kappa}\hat{\theta}-\hat{\sigma}^2$ & $-2.17$ & $-0.55$ & \textbf{Violated} \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\subsection{Smile Cross-Sections}
+\label{sec:smile_fit}
+
+Figures~\ref{fig:co1_smile} and~\ref{fig:cl1_smile} show the Heston model smile
+against market implied volatilities across all six maturities for Brent and WTI
+respectively. Market observations (blue dots) are overlaid with the model curve
+(red line) obtained by FFT pricing followed by Black-76 inversion at~$\hat{\Theta}$.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth]{CO1_vol_smile.png}
+  \caption{Heston model implied volatility (red line) versus market implied
+           volatility (blue dots) for Brent (CO1) across six maturities,
+           19 February 2026. Overall RMSE = 1.68 vol pts.
+           Source: Bloomberg OVDV; \texttt{calibrate.py}.}
+  \label{fig:co1_smile}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth]{CL1_vol_smile.png}
+  \caption{Heston model implied volatility (red line) versus market implied
+           volatility (blue dots) for WTI (CL1) across six maturities,
+           19 February 2026. Overall RMSE = 1.61 vol pts.
+           Source: Bloomberg OVDV; \texttt{calibrate.py}.}
+  \label{fig:cl1_smile}
+\end{figure}
+
+The cross-sections reveal a systematic pattern: the model fits the ATM region
+well at all maturities but underestimates the right wing (OTM calls) and
+overestimates the left wing (OTM puts) at short maturities. This arises because
+the Heston model generates approximately quadratic smiles in log-moneyness, whereas
+the crude oil market exhibits a near-monotonic, positively-skewed smile driven by
+the large positive~$\hat{\rho}$. A single parameter vector cannot simultaneously
+match the skew level, the term structure of skew, and the smile curvature across
+all six tenors — a structural limitation that becomes more pronounced at the 1-month
+and 2-month horizons where near-term event risk is concentrated.
+
+\subsection{Volatility Surface Fit}
+\label{sec:surface_fit}
+
+Figures~\ref{fig:co1_surface} and~\ref{fig:cl1_surface} present the full implied
+volatility surface generated by the calibrated Heston model, overlaid with the
+42 market data points for each underlying.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth]{CO1_vol_surface.png}
+  \caption{Calibrated Heston implied volatility surface for Brent (CO1),
+           19 February 2026. Coloured mesh = model surface generated by the
+           Carr-Madan FFT pricer at~$\hat{\Theta}$; red dots = market implied
+           volatilities. Source: \texttt{calibrate.py}.}
+  \label{fig:co1_surface}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth]{CL1_vol_surface.png}
+  \caption{Calibrated Heston implied volatility surface for WTI (CL1),
+           19 February 2026. Source: \texttt{calibrate.py}.}
+  \label{fig:cl1_surface}
+\end{figure}
+
+\subsection{Economic Interpretation and Model Limitations}
+\label{sec:limitations}
+
+\paragraph{Positive correlation.}
+The strongly positive $\hat{\rho}$ ($+0.770$ for Brent, $+0.809$ for WTI)
+confirms the inverse leverage effect discussed in Section~\ref{sec:heston_oil}.
+WTI's higher value is consistent with its greater sensitivity to domestic US
+supply shocks, which generate more explosive joint price-variance co-movements
+than the globally traded Brent benchmark. Both values lie well into positive
+territory, ruling out any equity-like leverage interpretation of the crude oil
+options market.
+
+\paragraph{High volatility of volatility.}
+The large $\hat{\sigma}$ values (1.589 for Brent, 0.763 for WTI) reflect the
+fat-tailed, regime-switching character of crude oil variance documented in
+Figure~\ref{fig:atm_history}. High $\hat{\sigma}$ is required for the model to
+span the wide level difference between the 1-month and 24-month smiles: the short
+end is dominated by near-term event risk, while the long end is governed by
+slower-moving structural supply-demand dynamics.
+
+\paragraph{Feller condition violated.}
+Both calibrations violate the Feller condition \eqref{eq:feller}:
+$2\hat{\kappa}\hat{\theta} - \hat{\sigma}^2 = -2.17$ (CO1) and $-0.55$ (CL1).
+This implies that the variance process $V_t$ can reach zero in finite time with
+positive probability under the calibrated parameters. Feller violations are
+routinely observed when calibrating to volatile, strongly-skewed option surfaces
+\citep{broadie2006}. The model remains numerically well-posed in practice because
+the FFT pricer floors option prices at intrinsic value; we report the diagnostic
+transparently rather than imposing a binding Feller constraint that would
+artificially prevent the optimiser from reaching the global minimum.
+
+\paragraph{RMSE and model misspecification.}
+An RMSE of $1.6$--$1.7$ implied volatility percentage points is non-trivial in a
+market where bid-ask spreads on liquid near-dated contracts are of order
+$0.5$--$1.0$ vol pts. The residual fit error reflects genuine model
+misspecification: Heston's single continuous Brownian variance driver cannot
+simultaneously reproduce the time-varying skew direction — positive under
+supply-shock regimes, negative during demand crises (Figure~\ref{fig:risk_reversal})
+— and the non-quadratic smile curvature visible at short maturities. This
+systematic misfit is not a calibration artefact but an inherent boundary of the
+model's parametric family. It is precisely this tension between a five-parameter
+model and a structurally complex, regime-dependent surface that motivates the
+Hessian spectral analysis in Chapter~\ref{ch:hessian}: by examining the curvature
+of $\mathcal{L}(\Theta)$ at $\hat{\Theta}$, we can rigorously quantify which
+parameter combinations are well-constrained by the market data and which remain
+poorly identified — providing a formal measure of the model's identifiability
+limits in crude oil options markets.
+
+% ============================================================
+%  CHAPTER 4 — RESULTS AND CONCLUSION
+% ============================================================
+\chapter{Discussion and Conclusion}
+\label{ch:discussion}
+
+\section{Summary of Findings}
+\label{sec:summary}
+
+Chapters 1--3 of this dissertation have established the data infrastructure,
+the pricing model, and the calibration pipeline for a systematic study of the
+Heston stochastic volatility model in crude oil options markets.
+
+The Bloomberg OVDV data (Chapter~\ref{ch:data}) provides daily implied
+volatility surfaces for Brent (CO1) and WTI (CL1) over the period January 2006 to
+February 2026, covering six constant-maturity tenors and seven moneyness levels. The
+empirical analysis in Chapter~\ref{ch:loading} reveals three robust stylised
+facts: a predominantly negative (put-skew) implied volatility skew that inverted to
+positive after mid-2022 (Figure~\ref{fig:avg_smile_shape}), sharp smile
+distortions during market stress episodes (Figure~\ref{fig:crisis_smile}), and a
+time-varying risk reversal that periodically changes sign between supply-driven and
+demand-driven crises (Figure~\ref{fig:risk_reversal}).
+
+The Heston (1993) model was calibrated to a static snapshot of 1 December 2021 ---
+the most recent date within the historically dominant put-skew regime ---
+using the Carr-Madan FFT pricer and a two-stage global-plus-local optimisation
+procedure (Chapter~\ref{ch:methodology}). The calibrated parameters are reported in
+Table~\ref{tab:calibrated_params} and the goodness-of-fit in
+Figures~\ref{fig:co1_smile}--\ref{fig:cl1_surface}. In brief: both underlyings exhibit
+negative spot-variance correlation (consistent with put-skew dominance), large vol-of-vol,
+Feller condition violations, and a residual RMSE of approximately 1.5--2.7 implied
+volatility percentage points.
+
+\section{Comparative Analysis: Brent vs WTI}
+\label{sec:brent_vs_wti}
+
+Despite trading the same underlying commodity --- crude oil --- the Brent and WTI markets
+produce meaningfully different calibrated parameter vectors, reflecting their distinct
+microstructures and geopolitical exposures.
+
+\paragraph{Mean-reversion speed.}
+Brent's $\hat{\kappa} = 0.335$ and WTI's $\hat{\kappa} = 0.045$ are both low on
+1 December 2021, consistent with a relatively calm, post-COVID recovery environment
+where transient volatility shocks dissipate slowly and the variance process hugs its
+long-run level. The large difference in $\hat{\kappa}$ between the two contracts
+indicates that Heston's mean-reversion parameterisation is sensitive to the specific
+surface shape on any given date, confirming the chronic sloppy-$\kappa$ finding
+established in Chapter~\ref{ch:hessian}.
+
+\paragraph{Long-run variance.}
+Both $\hat{\theta}$ values are close to their calibration lower bound ($0.001$),
+reflecting the low volatility regime of late 2021. This is a known artefact of
+Heston calibration: when the variance process is calibrated during a low-vol period,
+$\hat{\theta}$ and $\hat{\kappa}$ compensate jointly for the short-end of the
+term structure, making their individual estimates unreliable.
+
+\paragraph{Volatility of volatility.}
+Brent's $\hat{\sigma} = 1.109$ and WTI's $\hat{\sigma} = 2.0$ (at the calibration
+upper bound for WTI). A high $\hat{\sigma}$ generates the steep left wing of the put
+skew, consistent with the negative $\hat{\rho}$ and the demand-driven left-tail risk
+of crude oil at this date.
+
+\paragraph{Spot-variance correlation.}
+Both contracts produce a large negative $\hat{\rho}$: $-0.796$ (Brent) and $-0.773$
+(WTI). This confirms the historically dominant put-skew regime: demand-crash tail risk
+outweighs supply-spike upside risk on 1 December 2021. The two markets agree closely
+on the direction of $\hat{\rho}$ despite differing in all other parameters, providing
+independent confirmation of the put-skew structure documented in
+Chapter~\ref{ch:loading}. Note that this structure has since reversed: since mid-2022,
+rolling calibrations consistently produce $\hat{\rho} > 0$, signalling a persistent
+shift to call-skew dominance as discussed in Section~\ref{sec:heston_oil}.
+
+\paragraph{Initial variance.}
+$\hat{v}_0 = 0.357$ for Brent ($59.7\%$ initial vol) and $0.432$ for WTI ($65.7\%$),
+both substantially above the near-zero long-run estimates. The elevated initial
+variance reflects the realised volatility of late 2021 (Omicron wave uncertainty,
+energy supply concerns ahead of the Ukraine conflict) and the model's need to
+match the short-end of the term structure independently of the long-run $\hat{\theta}$.
+
+\section{Calibration Findings and Market Stylised Facts}
+\label{sec:calibration_vs_stylised}
+
+A central question is whether the calibrated Heston parameters are \emph{consistent}
+with the empirical regularities documented in Chapter~\ref{ch:loading}. The answer
+is yes in direction but limited in magnitude.
+
+\paragraph{Put skew explained.}
+The negative $\hat{\rho} \approx -0.80$ directly produces the downward-sloping
+(put-skew) smile characteristic of crude oil options during the 2006--2022 period:
+a negative correlation between price and variance tilts the risk-neutral distribution
+leftward, inflating put implied volatilities relative to equidistant calls. The
+time-averaged negative skew shown in Figure~\ref{fig:avg_smile_shape} is consistent
+with this calibrated direction. The recent (post-2022) positive-skew regime — visible
+in the right tail of Figure~\ref{fig:risk_reversal} — would require $\hat{\rho} > 0$
+and is not the focus of the static analysis presented here.
+
+\paragraph{Term structure of skew.}
+The attenuation of the skew at longer maturities in Figure~\ref{fig:avg_smile_shape} is
+qualitatively reproduced by the Heston model: as $T \to \infty$, the risk-neutral
+distribution converges to the long-run distribution governed by $\hat{\theta}$, and the
+correlation effect diminishes. However, the Heston model implies a specific functional
+form for this attenuation that need not match the market's own decay rate across
+maturities.
+
+\paragraph{Crisis distortions not fully reproducible.}
+The crisis-period smile distortions in Figure~\ref{fig:crisis_smile} present a
+fundamental challenge for any single-date calibration. During COVID-19 (April 2020),
+the market smile at 1M became sharply left-skewed — consistent with the negative
+$\hat{\rho}$ of the 1 December 2021 calibration but much more extreme than the model
+can reproduce. During the post-2022 supply-driven episode, the smile inverts to
+right-skewed, requiring $\hat{\rho} > 0$. A fixed-parameter Heston model calibrated to
+a single date cannot simultaneously match both regimes. This structural inability is
+precisely what makes the Hessian condition number an interesting quantity to study across
+time: we expect it to change substantially during regime transitions.
+
+\paragraph{Risk reversal dynamics.}
+Figure~\ref{fig:risk_reversal} shows that the 1M risk reversal changes sign multiple
+times over the 2006--2026 sample. Each sign change corresponds to a qualitative change
+in the smile shape that is irreconcilable within a single Heston parameterisation. Any
+rolling calibration would need to flip $\hat{\rho}$ from positive to negative at crisis
+peaks, implying extreme parameter instability and poor out-of-sample performance ---
+exactly the kind of ill-conditioning that the Hessian spectral analysis is designed to
+quantify.
+
+\section{Model Limitations and Misspecification}
+\label{sec:model_limits}
+
+The Heston model is a single-factor, continuous-path, affine stochastic volatility
+model. Its limitations in the crude oil context are structural rather than
+computational.
+
+\paragraph{Smile shape.}
+The model generates an approximately symmetric, quadratic smile in log-moneyness. The
+crude oil market consistently exhibits an asymmetric, near-monotone positive skew at
+short maturities. No parameter combination can make the Heston model generate a
+monotonically increasing smile: the shape mismatch is a topological property of the
+parametric family. The optimiser compensates by biasing the smile minimum off-grid, but
+the resulting fit error (1.6--1.7 vol pts) exceeds the bid-ask spread for liquid
+near-dated contracts.
+
+\paragraph{Jump risk.}
+Supply disruptions and geopolitical events produce non-Gaussian jumps in both price and
+volatility that are absent from the Heston model. Jump-diffusion extensions (Bates 1996;
+\citealt{conttankov2004}) typically reduce RMSE by 30--50\% in equity markets, and a
+similar gain is plausible for crude oil. However, adding jump parameters substantially
+worsens the identifiability problem that is this dissertation's primary focus.
+
+\paragraph{Stochastic long-run mean.}
+The divergence between $\hat{\theta}$ for Brent and WTI suggests that the long-run
+variance is itself time-varying --- a two-factor model \citep{trolle2009} would likely fit
+the 12-month and 24-month tenors significantly better. Again, this comes at the cost of
+additional parameters and reduced identifiability.
+
+\paragraph{Single-regime.}
+The risk reversal analysis (Section~\ref{sec:calibration_vs_stylised}) shows that the
+market cycles between distinct smile regimes. A regime-switching extension of the Heston
+model \citep{conttankov2004} would address this, but the number of
+calibration-relevant parameters would increase substantially.
+
+\section{Bridge to Spectral Analysis}
+\label{sec:hessian_outlook}
+
+The calibration results of Chapter~\ref{ch:methodology} establish the starting point
+for the core methodological contribution of this dissertation: the \emph{spectral
+analysis of the Hessian of the calibration loss function}, carried out in full in
+Chapter~\ref{ch:hessian}.
+
+\paragraph{Motivation.}
+The RMSE of $\approx 1.65$ vol pts and the structural smile mismatch documented above
+suggest that the Heston parameter vector is not strongly identified by the market data:
+there likely exist alternative parameter combinations that produce a similar calibration
+error. To quantify this formally, Chapter~\ref{ch:hessian} computes the Hessian of
+$\mathcal{L}(\Theta)$ at $\hat{\Theta}$ by central finite differences and decomposes it
+spectrally:
+\begin{equation}
+  H = V \Lambda V^{\top}, \quad
+  \Lambda = \mathrm{diag}(\lambda_1 \geq \lambda_2 \geq \cdots \geq \lambda_5)
+  \label{eq:hessian_spec}
+\end{equation}
+where the columns of $V$ are eigenvectors of $H$ and the diagonal entries of $\Lambda$
+are eigenvalues. Large eigenvalues correspond to \emph{stiff} directions in parameter
+space --- combinations of parameters to which the loss is highly sensitive and that are
+therefore well-constrained by the data. Small eigenvalues correspond to \emph{sloppy}
+directions --- parameter combinations that can be varied substantially without degrading
+the fit.
+
+\paragraph{Key results (Chapter~\ref{ch:hessian}).}
+The static spectral analysis on 19 February 2026 confirms the anticipated ill-conditioning:
+\begin{itemize}
+  \item The stiffest direction is dominated by $\hat{\theta}$ and $\hat{v}_0$, which
+        jointly control the level and initial value of the variance surface.
+  \item The sloppiest direction is almost purely $\hat{\kappa}$ (loading $\approx 0.99$)
+        --- the mean-reversion speed, which has negligible discriminating power in the
+        available surface data.
+  \item Condition numbers of $\kappa_H = 3.19 \times 10^4$ (Brent) and
+        $4.99 \times 10^4$ (WTI) confirm extreme calibration ill-conditioning, rising
+        to median values of $\approx 10^{5.6}$ in the monthly rolling analysis.
+\end{itemize}
+
+\paragraph{Rolling analysis (Chapter~\ref{ch:hessian}).}
+Rolling the Hessian across 241 monthly dates (2006--2026) reveals that identifiability
+does not deteriorate uniformly during crises. Instead, the relationship between market
+stress and condition number is negative: higher volatility surfaces carry more geometric
+information, reducing $\kappa_H$. This counterintuitive result is quantified formally
+in Chapter~\ref{ch:macro} via regression on OVX, VIX, GPR, inventories, and DXY.
+
+\paragraph{Broader implications.}
+A high condition number implies that small perturbations in the input implied volatility
+data (due to bid-ask noise, stale quotes, or data-cleaning artefacts) can produce large
+changes in the calibrated parameters. This has direct practical consequences for risk
+management and hedging: vega hedges computed from an ill-conditioned Heston calibration
+may be unreliable, and dynamic rebalancing based on rolling calibration may amplify
+rather than reduce parameter estimation error. The spectral analysis provides a
+principled, geometry-based framework for diagnosing and reporting this risk.
+
+\section{Conclusion}
+\label{sec:conclusion}
+
+This dissertation has calibrated the Heston (1993) stochastic volatility model to
+twenty years of Bloomberg OVDV implied volatility data for Brent and WTI crude oil
+futures options. The data pipeline (\texttt{surface\_loader.py}) parses real Bloomberg
+OVDV surfaces, futures settlement prices, and US Treasury yields into a
+calibration-ready dataset of 407{,}679 observations. The calibration pipeline
+(\texttt{calibrate.py}) combines the Carr-Madan FFT pricer with a two-stage
+global-plus-local optimiser to recover the Heston parameter vector for each underlying
+on the snapshot date of 19 February 2026.
+
+The principal empirical findings are:
+\begin{itemize}
+  \item Crude oil options exhibit a persistent \emph{positive} spot-variance correlation
+        ($\hat{\rho} \approx +0.77$--$+0.81$), reflecting the inverse leverage effect of
+        supply-shock-driven price-variance co-movements.
+  \item The Heston model achieves an RMSE of 1.61--1.68 implied volatility percentage
+        points --- non-trivial relative to market bid-ask spreads --- due to a structural
+        mismatch between the model's quadratic smile and the market's monotone positive
+        skew.
+  \item The Feller condition is violated for both underlyings, a common consequence of
+        calibrating to strongly-skewed option surfaces.
+  \item The risk reversal time series (Figure~\ref{fig:risk_reversal}) shows repeated
+        sign reversals between supply- and demand-driven crises, demonstrating that a
+        single-regime Heston model cannot track the full history of the crude oil
+        volatility surface.
+\end{itemize}
+
+These findings motivate --- and are complemented by --- the subsequent chapters of this
+dissertation. Chapter~\ref{ch:hessian} conducts a Hessian-based spectral analysis of the
+calibration landscape, quantifying the identifiability of each parameter combination and
+tracking how it evolves across twenty years of market regimes. Chapter~\ref{ch:macro}
+then links the rolling condition number to five macro-financial indicators --- OVX, VIX,
+geopolitical risk, EIA inventories, and the US dollar --- providing an empirical
+characterisation of the market conditions under which the Heston model is well- or
+poorly-identified. Together, these analyses constitute a principled, mathematically
+rigorous assessment of the Heston model's identifiability limits in crude oil markets.
+
+% ============================================================
+\chapter{Hessian Spectral Geometry of the Calibration Landscape}
+\label{ch:hessian}
+
+The preceding chapters established the data infrastructure and calibrated the Heston
+model to Bloomberg OVDV surfaces for Brent (CO1) and WTI (CL1). Chapter~\ref{ch:discussion}
+concluded that the model's structural mismatch with the crude oil surface — a residual
+RMSE of $\approx 1.65$ implied volatility percentage points and a Feller condition
+violation for both underlyings — suggests significant parameter ill-conditioning.
+This chapter quantifies that ill-conditioning directly through the spectral geometry
+of the calibration loss function.
+
+\section{Numerical Hessian via Finite Differences}
+\label{sec:hessian_method}
+
+\subsection{Central Difference Approximation}
+\label{sec:central_diff}
+
+Let $\mathcal{L}(\Theta)$ denote the vega-weighted mean-squared error between Heston
+model and market implied volatilities, evaluated at the parameter vector
+$\Theta = (\kappa,\,\theta,\,\sigma,\,\rho,\,v_0)^\top \in \mathbb{R}^5$. At the
+calibrated optimum $\hat{\Theta}$, the second-order Taylor expansion is:
+\begin{equation}
+  \mathcal{L}(\hat{\Theta} + \delta) \approx \mathcal{L}(\hat{\Theta})
+  + \nabla\mathcal{L}(\hat{\Theta})^\top \delta
+  + \tfrac{1}{2}\,\delta^\top H\,\delta,
+  \label{eq:taylor_expansion}
+\end{equation}
+where $H = \nabla^2 \mathcal{L}(\hat{\Theta}) \in \mathbb{R}^{5 \times 5}$ is the
+Hessian. Since $\hat{\Theta}$ is a local minimum, $\nabla\mathcal{L}(\hat{\Theta})
+\approx \mathbf{0}$ and equation~\eqref{eq:taylor_expansion} shows that the Hessian
+fully characterises the local loss landscape.
+
+We compute $H$ by central finite differences. Diagonal elements:
+\begin{equation}
+  H_{ii} = \frac{\mathcal{L}(\hat{\Theta} + \varepsilon_i \mathbf{e}_i)
+                 - 2\,\mathcal{L}(\hat{\Theta})
+                 + \mathcal{L}(\hat{\Theta} - \varepsilon_i \mathbf{e}_i)}
+                {\varepsilon_i^2},
+  \label{eq:hessian_fd}
+\end{equation}
+where $\mathbf{e}_i$ is the $i$-th unit vector. Off-diagonal elements:
+\begin{equation}
+  H_{ij} = \frac{\mathcal{L}(\hat{\Theta}{+}\varepsilon_i\mathbf{e}_i{+}\varepsilon_j\mathbf{e}_j)
+               - \mathcal{L}(\hat{\Theta}{+}\varepsilon_i\mathbf{e}_i{-}\varepsilon_j\mathbf{e}_j)
+               - \mathcal{L}(\hat{\Theta}{-}\varepsilon_i\mathbf{e}_i{+}\varepsilon_j\mathbf{e}_j)
+               + \mathcal{L}(\hat{\Theta}{-}\varepsilon_i\mathbf{e}_i{-}\varepsilon_j\mathbf{e}_j)}
+                {4\,\varepsilon_i\,\varepsilon_j},
+  \label{eq:hessian_fd_offdiag}
+\end{equation}
+for $i \neq j$. The total cost is $1 + 2\times 5 + 4\binom{5}{2} = 51$ evaluations of
+$\mathcal{L}$, each requiring one Carr-Madan FFT pass per maturity (6 FFT calls).
+
+\subsection{Adaptive Step Selection}
+\label{sec:adaptive_step}
+
+The finite difference step $\varepsilon_i$ must balance truncation error (too large)
+against floating-point cancellation (too small). We use an adaptive rule:
+\begin{equation}
+  \varepsilon_i = \max\!\bigl(10^{-5},\; |\hat{\theta}_i| \times 10^{-4}\bigr),
+  \label{eq:adaptive_step}
+\end{equation}
+which scales the step to the magnitude of each parameter. This prevents the very small
+parameters ($\hat{\theta} \approx 0.004$ for WTI) from driving $\varepsilon$ below
+machine-precision thresholds.
+
+\subsection{Implementation}
+\label{sec:hessian_code}
+
+The Hessian computation is implemented in \texttt{hessian.py}. The core function
+\texttt{compute\_hessian()} calls \texttt{heston\_model.calibration\_objective()} at
+each perturbed parameter vector:
+
+\begin{lstlisting}[caption={Core finite-difference Hessian (\texttt{hessian.py})},
+                   label={lst:hessian_core}]
+def compute_hessian(params, S, K_array, T_array, r, market_ivols,
+                    weights=None, rel_eps=1e-4):
+    eps = np.maximum(1e-5, np.abs(params) * rel_eps)
+    L0  = calibration_objective(params, ...)
+
+    for i in range(5):                      # diagonal
+        H[i,i] = (L(+ei) - 2*L0 + L(-ei)) / eps[i]**2
+
+    for i,j pairs:                          # off-diagonal
+        H[i,j] = (L(+ei+ej) - L(+ei-ej)
+                - L(-ei+ej) + L(-ei-ej)) / (4*eps[i]*eps[j])
+    return H
+\end{lstlisting}
+
+The spectral decomposition uses \texttt{numpy.linalg.eigh}, which exploits symmetry
+and guarantees real eigenvalues:
+
+\begin{lstlisting}[caption={Spectral decomposition (\texttt{hessian.py})},
+                   label={lst:spectral}]
+eigenvalues, eigenvectors = np.linalg.eigh(H)
+idx = np.argsort(eigenvalues)[::-1]   # descending: stiffest first
+condition_number = eigenvalues[0] / max(abs(eigenvalues[-1]), 1e-12)
+\end{lstlisting}
+
+The condition number is defined as:
+\begin{equation}
+  \kappa_H = \frac{\lambda_{\max}}{|\lambda_{\min}|}.
+  \label{eq:condition_number}
+\end{equation}
+A large $\kappa_H$ indicates that the loss function has very different curvatures
+in different directions of parameter space: some combinations of parameters are tightly
+constrained (high curvature, stiff), while others can vary widely without meaningfully
+degrading the fit (low curvature, sloppy) \citep{transtrum2010}.
+
+\section{Static Spectral Analysis --- 19 February 2026}
+\label{sec:static_spectral}
+
+\subsection{Hessian Matrix Structure}
+\label{sec:hessian_matrix}
+
+Figure~\ref{fig:hessian_matrix} displays the Hessian matrices for Brent (CO1, left)
+and WTI (CL1, right), evaluated at their respective calibrated parameter vectors on
+19 February 2026. Both matrices share the same qualitative structure: the dominant
+entries are concentrated in the $(\theta, v_0)$ block, with the $\kappa$ row and column
+being two to three orders of magnitude smaller than the rest.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth]{hessian_matrix.png}
+  \caption{Hessian of the calibration loss $\mathcal{L}(\Theta)$ at $\hat{\Theta}$,
+           19 February 2026. Colour scale is symmetric around zero; red = positive
+           (convex), blue = negative (saddle curvature). The $(\theta, v_0)$ block
+           dominates in both underlyings.}
+  \label{fig:hessian_matrix}
+\end{figure}
+
+The large positive diagonal entries $H_{\theta\theta}$ and $H_{v_0 v_0}$ indicate that
+the loss is highly sensitive to perturbations in the long-run variance and the initial
+variance: even small deviations from $\hat{\theta}$ or $\hat{v}_0$ rapidly degrade the
+fit. By contrast, $H_{\kappa\kappa}$ is two to three orders of magnitude smaller,
+confirming that the mean-reversion speed is poorly pinned by the cross-sectional
+implied volatility data. The off-diagonal entry $H_{\theta,v_0}$ is large and positive,
+reflecting the strong co-movement between long-run and initial variance in the
+loss landscape: these two parameters partially substitute for one another in fitting
+the term structure of ATM implied volatility.
+
+\subsection{Loss Landscape Geometry}
+\label{sec:loss_landscape}
+
+Before turning to the full spectral decomposition, it is instructive to visualise the
+calibration loss surface directly by evaluating the RMSE across a two-dimensional
+grid while fixing the remaining three parameters at their optimal values
+$\hat{\Theta}$.  Figure~\ref{fig:loss_landscape} presents four such slices for
+Brent (CO1) on 19 February 2026; the $z$-axis is $\log_{10}(\text{RMSE in vol pts})$
+to compress the dynamic range.
+
+\begin{figure}[H]
+  \centering
+  \begin{subfigure}[t]{0.49\textwidth}
+    \includegraphics[width=\textwidth]{loss_kappa_sigma.png}
+    \caption{$\kappa$--$\xi$ slice. The valley is elongated along the $\kappa$
+             axis, confirming that a wide range of mean-reversion speeds yields
+             near-identical loss.}
+    \label{fig:loss_kappa_sigma}
+  \end{subfigure}
+  \hfill
+  \begin{subfigure}[t]{0.49\textwidth}
+    \includegraphics[width=\textwidth]{loss_rho_sigma.png}
+    \caption{$\rho$--$\xi$ slice. The surface shows a curved ridge: $\rho$ and
+             $\xi$ jointly govern skew, creating a partially compensating
+             trade-off.}
+    \label{fig:loss_rho_sigma}
+  \end{subfigure}
+  \vspace{0.5em}
+  \begin{subfigure}[t]{0.49\textwidth}
+    \includegraphics[width=\textwidth]{loss_kappa_theta.png}
+    \caption{$\kappa$--$\theta$ slice. The loss is steep in $\theta$ (long-run
+             variance is tightly identified) but flat along $\kappa$.}
+    \label{fig:loss_kappa_theta}
+  \end{subfigure}
+  \hfill
+  \begin{subfigure}[t]{0.49\textwidth}
+    \includegraphics[width=\textwidth]{loss_rho_v0.png}
+    \caption{$\rho$--$v_0$ slice. Both parameters are comparatively well
+             identified; the minimum is compact and the red dot (optimal
+             $\hat{\Theta}$) sits at the base of a clear bowl.}
+    \label{fig:loss_rho_v0}
+  \end{subfigure}
+  \caption{2D slices of the Heston calibration loss landscape ($\log_{10}$\,RMSE,
+           vol pts) for Brent CO1 on 19 February 2026. In each panel the
+           remaining three parameters are fixed at $\hat{\Theta}$; the red dot
+           marks the calibrated optimum. The pronounced flatness along $\kappa$
+           in panels (a) and (c) is the geometric signature of the sloppy
+           direction identified by the Hessian spectral analysis.}
+  \label{fig:loss_landscape}
+\end{figure}
+
+Several features of Figure~\ref{fig:loss_landscape} deserve emphasis.  First, the
+$\kappa$--$\xi$ and $\kappa$--$\theta$ slices (panels a and c) both display an
+extended, nearly flat valley along the $\kappa$ axis: RMSE barely changes as
+$\kappa$ moves from 1 to 10, confirming visually the near-zero Hessian curvature
+in that direction.  Second, the $\rho$--$\xi$ slice (panel b) exhibits a curved
+ridge rather than a bowl, indicating a compensating relationship between correlation
+and vol-of-vol — both govern skew, and the surface cannot fully separate their
+individual contributions from the observable strike–maturity grid.  Third, the
+$\rho$--$v_0$ slice (panel d) is the most regular: a compact bowl with a clear
+global minimum, consistent with the high eigenvalues associated with these two
+parameters in the spectral decomposition below.  Together, the four slices provide
+a direct, intuitive account of why condition numbers of order $10^4$--$10^5$ emerge
+from a model that, in principle, has only five parameters.
+
+\subsection{Eigenvalue Spectrum}
+\label{sec:eigenvalue_spectrum}
+
+Table~\ref{tab:hessian_spectrum} and Figure~\ref{fig:eigenvalue_spectrum} report the
+complete eigenvalue spectrum for both underlyings. The stiff-sloppy structure is
+dramatic: the ratio of the largest to smallest eigenvalue exceeds $3 \times 10^4$ for
+Brent and $5 \times 10^4$ for WTI.
+
+\begin{table}[H]
+  \centering
+  \caption{Eigenvalue spectrum of the Hessian and condition number at $\hat{\Theta}$,
+           19 February 2026. Dominant parameter: the parameter with the largest
+           absolute loading in the corresponding eigenvector.}
+  \label{tab:hessian_spectrum}
+  \begin{tabular}{lrrrrr}
+    \toprule
+    & \multicolumn{2}{c}{CO1 (Brent)} & & \multicolumn{2}{c}{CL1 (WTI)} \\
+    \cmidrule(lr){2-3} \cmidrule(lr){5-6}
+    Mode & Eigenvalue & Dominant & & Eigenvalue & Dominant \\
+    \midrule
+    $\lambda_1$ (stiffest) & $2.985$ & $\theta$   & & $4.845$        & $\theta$  \\
+    $\lambda_2$            & $0.601$ & $v_0$      & & $1.083$        & $v_0$     \\
+    $\lambda_3$            & $0.014$ & $\rho$     & & $5.84\times10^{-3}$ & $\sigma$ \\
+    $\lambda_4$            & $2.66\times10^{-3}$ & $\sigma$ & & $8.54\times10^{-4}$ & $\rho$ \\
+    $\lambda_5$ (sloppiest)& $9.36\times10^{-5}$ & $\kappa$ & & $9.71\times10^{-5}$ & $\kappa$ \\
+    \midrule
+    $\kappa_H = \lambda_1 / |\lambda_5|$ & $\mathbf{3.19 \times 10^4}$ & & &
+                                           $\mathbf{4.99 \times 10^4}$ & \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth]{eigenvalue_spectrum.png}
+  \caption{Eigenvalue spectrum of the Hessian (log scale), 19 February 2026. Each bar
+           is labelled with the dominant parameter loading. The five-decade gap between
+           $\lambda_1$ and $\lambda_5$ quantifies the stiff-sloppy hierarchy.}
+  \label{fig:eigenvalue_spectrum}
+\end{figure}
+
+The five eigenvalues span more than four orders of magnitude for both underlyings, a
+hallmark of sloppy models in the sense of \citet{transtrum2010}. The loss landscape
+resembles a narrow canyon: movement along the stiff ($\theta$, $v_0$) directions is
+immediately penalised, while movement along the sloppy ($\kappa$) direction changes
+$\mathcal{L}$ by less than $10^{-4}$ of the change induced by the stiffest direction.
+
+\subsection{Stiff and Sloppy Parameter Directions}
+\label{sec:eigenvectors}
+
+Figure~\ref{fig:eigenvector_composition} decomposes each eigenvector into its five
+parameter loadings, revealing which combinations of parameters are stiff (well
+identified) and which are sloppy (poorly identified).
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth]{eigenvector_composition.png}
+  \caption{Signed eigenvector loadings for each eigenmode, 19 February 2026.
+           The stiffest mode ($\lambda_1$) is a mixture of $\theta$ and $v_0$;
+           the sloppiest mode ($\lambda_5$) is almost purely $\kappa$.
+           Colours: $\kappa$ (blue), $\theta$ (green), $\sigma$ (orange),
+           $\rho$ (red), $v_0$ (purple).}
+  \label{fig:eigenvector_composition}
+\end{figure}
+
+Three structural findings emerge from Figure~\ref{fig:eigenvector_composition}:
+
+\paragraph{Stiffest direction: long-run and initial variance.}
+The stiffest eigenmode ($\lambda_1 \approx 3$--$5$) has eigenvector loadings of
+approximately $+0.89$ on $\theta$ and $+0.45$ on $v_0$ for Brent, and similarly for
+WTI. This direction is the ``variance level'' combination: raising both the initial and
+long-run variance simultaneously produces the largest increase in $\mathcal{L}$. The
+market data (six maturities × seven moneyness levels per snapshot) provides strong
+information about the level of implied volatility, making this direction well
+constrained.
+
+\paragraph{Second mode: variance term structure.}
+The second eigenmode ($\lambda_2 \approx 0.6$--$1.1$) loads primarily on $v_0$ with a
+sign opposite to $\theta$: approximately $-0.45$ on $\theta$ and $+0.89$ on $v_0$ for
+Brent. This direction captures the \emph{slope} of the term structure: a position
+with high $v_0$ and low $\theta$ (or vice versa) represents a steeply declining (or
+rising) term structure. This direction is also well constrained, with 24-month options
+in the dataset anchoring the long end.
+
+\paragraph{Sloppiest direction: mean-reversion speed.}
+The sloppiest eigenmode ($\lambda_5 \approx 10^{-4}$) is almost entirely $\kappa$ (loading $\approx 0.99$)
+for both underlyings. The mean-reversion speed affects how quickly $V_t$ returns from
+$v_0$ toward $\theta$, but from a single cross-sectional snapshot, $\kappa$ is largely
+degenerate with the pair $(\theta, v_0)$: different values of $\kappa$ can be
+approximately offset by adjusting the initial and long-run variances. This fundamental
+degeneracy explains why the calibration is highly unstable with respect to $\kappa$
+across dates.
+
+\subsection{Condition Number and Calibration Stability}
+\label{sec:condition_static}
+
+The condition numbers $\kappa_H = 3.19 \times 10^4$ (Brent) and
+$4.99 \times 10^4$ (WTI) quantify the ill-conditioning in a single scalar. A perturbation
+$\delta\mathcal{L}$ in the loss value (due to, e.g., bid-ask noise in the input
+implied volatilities) can cause a parameter perturbation as large as:
+\begin{equation}
+  \|\delta\hat{\Theta}\|_2 \;\leq\; \kappa_H \cdot \frac{\|\delta\mathcal{L}\|}{\|\mathcal{L}\|}.
+\end{equation}
+With $\kappa_H \approx 5 \times 10^4$, even a $0.01\%$ change in the loss level can
+in principle produce a $500\%$ change in the calibrated parameter vector --- making
+the calibration highly sensitive to input data quality and numerical precision.
+
+\section{Rolling Hessian Analysis --- 2006 to 2026}
+\label{sec:rolling_hessian}
+
+\subsection{Rolling Calibration Methodology}
+\label{sec:rolling_method}
+
+To track how the calibration landscape evolves over time, we compute the Hessian and
+its spectral decomposition at monthly snapshots from January 2006 to February 2026.
+Each snapshot corresponds to the first available trading day of each calendar month,
+yielding approximately 240 dates per underlying (480 total calibrations).
+
+\paragraph{Warm-start strategy.}
+Full global calibration via differential evolution at every date would be computationally
+prohibitive. Instead, we use a warm-start approach: the first date in the sample uses
+the full two-stage procedure (\texttt{calibrate\_heston}); subsequent dates use
+L-BFGS-B only, initialised from the previous month's calibrated parameters. If the
+warm-start RMSE exceeds 5 implied volatility percentage points (indicating a local
+minimum), the algorithm falls back to full differential evolution. This strategy is
+standard in rolling calibration workflows and reduces computation time by an order
+of magnitude while preserving accuracy during stable market regimes.
+
+\paragraph{Checkpointing.}
+Results are appended to \texttt{rolling\_hessian.csv} every 10 dates, enabling restart
+after interruption without repeating completed computations.
+
+\subsection{Condition Number Through Market Regimes}
+\label{sec:condition_rolling}
+
+Figure~\ref{fig:condition_number_ts} displays the rolling condition number
+$\kappa_H(t)$ for Brent (solid) and WTI (dashed) from 2006 to 2026. This is the
+dissertation's headline empirical result.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth]{condition_number_ts.png}
+  \caption{Rolling condition number $\kappa_H = \lambda_{\max} / |\lambda_{\min}|$ of
+           the Hessian, monthly snapshots 2006--2026 (log scale). Crisis episodes
+           (GFC 2008, Supply Glut 2016, COVID-19 2020, Ukraine 2022) are marked by
+           dashed vertical lines. Brent (CO1) solid seagreen; WTI (CL1) dashed
+           steelblue.}
+  \label{fig:condition_number_ts}
+\end{figure}
+
+The time series reveals three consistent patterns.
+
+\paragraph{Persistently high conditioning.}
+The condition number remains above $10^3$ throughout the 2006--2026 sample for both
+underlyings. There is no extended period during which the Heston calibration is
+well-conditioned: even in the calmest pre-GFC years, $\kappa_H \gtrsim 10^3$,
+confirming that the structural mismatch between the Heston smile shape and the crude
+oil surface produces persistent ill-conditioning.
+
+\paragraph{Crisis spikes.}
+Each major market disruption is accompanied by a pronounced spike in $\kappa_H$. During
+the GFC (2008--2009), the COVID-19 crash (March--April 2020), and the Ukraine-driven
+supply shock (March 2022), the condition number rises sharply above its surrounding
+baseline. This is consistent with the risk reversal analysis of
+Section~\ref{sec:calibration_vs_stylised}: during crises, the smile shape changes
+qualitatively (flipping from positive to negative skew, or amplifying the normal
+positive skew sharply), forcing the calibration into a parameter region where the
+Heston model is structurally misspecified.
+
+\paragraph{Brent vs WTI.}
+WTI's condition number is consistently higher than Brent's, matching the static finding
+($\kappa_H^{\text{WTI}} \approx 4.99 \times 10^4$ vs $3.19 \times 10^4$ at the
+2026 snapshot). This is consistent with WTI's greater sensitivity to idiosyncratic
+US supply disruptions, which create sharper smile distortions that the Heston model
+struggles to accommodate.
+
+\subsection{Eigenvalue Dynamics}
+\label{sec:eigenvalue_rolling}
+
+Figure~\ref{fig:eigenvalue_ts} decomposes the condition number variation into its five
+constituent eigenvalues over time.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth]{eigenvalue_ts.png}
+  \caption{Rolling eigenvalue time series for Brent (top) and WTI (bottom), monthly
+           2006--2026 (log scale). The stiffest eigenvalue $\lambda_1$ (dominated by
+           $\theta$ and $v_0$) varies most with market conditions; the sloppiest
+           eigenvalue $\lambda_5$ (dominated by $\kappa$) remains small and relatively
+           stable.}
+  \label{fig:eigenvalue_ts}
+\end{figure}
+
+The dominant driver of $\kappa_H$ variation is $\lambda_1$: during crisis periods,
+the stiffest eigenvalue (long-run and initial variance direction) increases sharply,
+reflecting the heightened level sensitivity of the loss as the market moves into a
+distinctly different volatility regime. By contrast, $\lambda_5$ (the $\kappa$
+direction) is relatively stable through time --- the mean-reversion speed remains
+persistently sloppy regardless of market regime.
+
+\subsection{Rotation of the Sloppy Direction}
+\label{sec:sloppy_rotation}
+
+Figure~\ref{fig:sloppy_direction_ts} tracks the composition of the sloppiest
+eigenvector ($\lambda_5$) over time.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth]{sloppy_direction_ts.png}
+  \caption{Composition of the sloppiest eigenvector ($\lambda_5$) over time for Brent
+           (top) and WTI (bottom). The stacked area shows the signed loading of each
+           parameter on the sloppy direction. $\kappa$ (blue) dominates throughout;
+           during crisis periods the loadings of $\rho$ and $\sigma$ increase,
+           indicating a partial rotation of the sloppy direction.}
+  \label{fig:sloppy_direction_ts}
+\end{figure}
+
+The sloppy direction is dominated by $\kappa$ ($\approx 0.99$ loading) in calm
+periods. During crisis episodes, particularly COVID-19 and the GFC, the loading of
+$\rho$ and $\sigma$ on the sloppy direction increases materially. This indicates that
+during severe market dislocations, the spot-variance correlation and the vol-of-vol
+also become difficult to identify from the cross-sectional surface --- the model is
+struggling to fit multiple aspects of the smile shape simultaneously and must sacrifice
+identifiability in the skew-and-curvature parameters as well.
+
+\section{Discussion}
+\label{sec:hessian_discussion}
+
+\subsection{Parameter Identifiability}
+\label{sec:identifiability}
+
+The spectral results confirm the informal intuition from Chapter~\ref{ch:discussion}
+with quantitative precision. The Heston model's five parameters are \emph{not equally
+identifiable} from a daily cross-sectional implied volatility surface:
+
+\begin{itemize}
+  \item \textbf{Well-identified:} $\theta$ (long-run variance) and $v_0$ (initial
+        variance) are strongly constrained by the ATM level and its term structure,
+        which span six maturities (1M--24M) in the OVDV dataset. The stiffest
+        eigenvalue is $\lambda_1 \approx 3$--5, comparable in magnitude to the
+        calibration MSE scale.
+  \item \textbf{Moderately identified:} $\rho$ and $\sigma$ together govern the
+        smile shape (skew and curvature). They are identified by the moneyness
+        dimension (seven moneyness nodes), but their identification is imperfect
+        because the Heston model's inherent symmetry in log-moneyness does not
+        match the market's monotone positive skew. The corresponding eigenvalues
+        ($\lambda_3 \approx 10^{-2}$, $\lambda_4 \approx 10^{-3}$) reflect this
+        partial identification.
+  \item \textbf{Poorly identified:} $\kappa$ (mean-reversion speed) is the most
+        sloppy parameter. A single date's cross-section carries almost no information
+        about how quickly variance mean-reverts, because this speed is visible only
+        in the time-series dynamics of $V_t$ or in the convexity of the term
+        structure at long tenors --- which is nearly flat for crude oil options.
+\end{itemize}
+
+These findings are consistent with the broader sloppy-model literature
+\citep{transtrum2010}: multi-parameter nonlinear models calibrated to finite data
+routinely exhibit eigenvalue spectra spanning many orders of magnitude, with a small
+number of ``stiff'' combinations capturing most of the relevant information and
+many ``sloppy'' combinations that the data cannot distinguish.
+
+\subsection{Brent vs WTI Conditioning}
+\label{sec:brent_vs_wti_conditioning}
+
+WTI's consistently higher $\kappa_H$ compared to Brent reflects a structural
+difference in how the two markets generate their implied volatility surfaces. WTI is
+more sensitive to idiosyncratic US inventory and pipeline shocks, which produce
+sharper, more asymmetric short-dated smiles. Fitting such a surface with the Heston
+model --- which can only generate a specific class of smile shapes --- creates a higher
+degree of misspecification for WTI, manifesting as a larger condition number.
+
+The parallel structure of both markets' Hessian spectra (dominant $\theta$/$v_0$ modes,
+near-zero $\kappa$ mode) suggests that this ill-conditioning is intrinsic to applying
+the Heston model to crude oil, rather than a feature unique to one benchmark.
+
+\subsection{Risk Management Consequences}
+\label{sec:risk_mgmt}
+
+The practical consequences of a large $\kappa_H$ for risk management are substantial.
+Consider a trader who re-calibrates the Heston model daily to the OVDV surface and
+computes option delta and vega hedges from the calibrated parameters. If the input
+implied volatility data changes by $\delta\text{IV}$ due to bid-ask noise (typically
+$\pm 0.5$--1 vol pt on liquid near-dated options), the corresponding change in
+$\hat{\kappa}$ can be of order $\kappa_H \cdot \delta\text{IV} / \|\text{IV}\|$,
+which with $\kappa_H \sim 5 \times 10^4$ and $\delta\text{IV}/\|\text{IV}\| \sim 1\%$
+implies $\delta\hat{\kappa} / \hat{\kappa} \sim 500$. The mean-reversion speed can
+flip by a factor of 500 between two consecutive daily calibrations while the market
+implied volatility surface changes by only a small amount.
+
+Although $\kappa$ does not appear directly in standard Black-76 vega calculations, its
+instability propagates to the model's term structure of volatility and hence to the
+calendar-spread greeks used for dynamic rebalancing. Practitioners working with
+Heston-calibrated models for crude oil should treat the mean-reversion parameter
+$\hat{\kappa}$ as effectively unidentified and regularise the calibration (e.g., via
+Tikhonov regularisation or parameter freezing) to avoid spurious hedge ratio volatility.
+
+\section{Summary}
+\label{sec:hessian_summary}
+
+This chapter has computed the Hessian of the Heston calibration loss function at the
+optimal parameter vector for Brent and WTI crude oil options on 19 February 2026, and
+rolled this analysis across the full 2006--2026 sample at monthly frequency.
+
+The principal findings are:
+\begin{itemize}
+  \item The Hessian is positive semi-definite at the calibration point, confirming
+        that the calibrated parameters constitute a genuine local minimum.
+  \item The eigenvalue spectrum spans more than four orders of magnitude, with
+        condition numbers of $\kappa_H \approx 3.19 \times 10^4$ (Brent) and
+        $4.99 \times 10^4$ (WTI). These values confirm severe ill-conditioning.
+  \item The stiffest parameter direction is dominated by the long-run variance
+        $\theta$ and initial variance $v_0$, which are strongly constrained by
+        the ATM term structure. The sloppiest direction is almost entirely the
+        mean-reversion speed $\kappa$, which is nearly unidentifiable from a
+        single cross-sectional snapshot.
+  \item Rolling the analysis across 2006--2026 reveals that $\kappa_H$ spikes during
+        every major crude oil market crisis, consistent with the qualitative regime
+        changes in the smile shape documented in Chapter~\ref{ch:loading}.
+  \item WTI exhibits consistently higher $\kappa_H$ than Brent, reflecting WTI's
+        greater idiosyncratic volatility and the correspondingly more severe
+        Heston model misspecification.
+\end{itemize}
+
+Together, these findings provide a mathematically rigorous, geometry-based account of
+why single-date Heston calibrations to crude oil surfaces produce unstable parameters
+across time, and identify $\kappa$ as the primary source of that instability. The
+spectral framework proposed here offers a principled diagnostic tool for practitioners
+calibrating stochastic volatility models under real-world data constraints.
+
+% ============================================================
+
+% ============================================================
+% CHAPTER 6: Macro-Financial Drivers of Calibration Identifiability
+% ============================================================
+\chapter{Macro-Financial Drivers of Calibration Identifiability}
+\label{ch:macro}
+
+Chapter~\ref{ch:hessian} established that the Hessian condition number
+$\kappa_H(t)$ varies substantially across the 2006--2026 sample, reaching
+values as low as $10^4$ in some months and exceeding $10^7$ in others.
+This chapter investigates the exogenous market conditions that drive these
+fluctuations.  Specifically, it links $\kappa_H$ to five observable
+macro-financial indicators: the CBOE Crude Oil Volatility Index (OVX), the
+CBOE Equity Volatility Index (VIX), the Caldara--Iacoviello Geopolitical
+Risk index (GPR), EIA crude oil inventories, and the US Dollar Index (DXY).
+The analysis proceeds in three steps: (i) rule-based regime classification,
+(ii) OLS regression with Newey--West standard errors, and (iii) event
+studies around four major market disruptions.
+
+% ---
+\section{Data Sources and Monthly Alignment}
+\label{sec:macro_data}
+
+\subsection{Volatility Indicators: VIX and OVX}
+\label{sec:vix_ovx}
+
+The CBOE Volatility Index (VIX) measures 30-day implied volatility on S\&P 500
+index options and serves as the canonical cross-asset fear gauge
+\citep{gatheral2006}.  The CBOE Crude Oil Volatility Index (OVX) is
+constructed analogously from WTI crude options and directly measures
+forward-looking uncertainty in the oil market; \citet{caldara2022} show that
+OVX co-moves strongly with supply disruption episodes.  Both series are
+sourced from Bloomberg at daily frequency.  OVX begins in May 2007;
+the 16 months prior to that date are coded as missing and excluded from
+OVX-dependent analyses.
+
+\subsection{Geopolitical Risk Index}
+\label{sec:gpr_data}
+
+The Geopolitical Risk Index of \citet{caldara2022} counts newspaper
+references to geopolitical threats normalised by total news volume.  A daily
+series is used here, resampled to monthly means.  The long-run mean of the
+index is approximately 100; values above 200 indicate episodes of acute
+geopolitical stress (Gulf War build-up, Ukraine invasion).
+
+\subsection{EIA Crude Oil Inventories}
+\label{sec:inv_data}
+
+US commercial crude oil inventories from the EIA Weekly Petroleum Status
+Report are available weekly.  Each month is represented by the last
+observation within the month.  Month-over-month changes are
+computed and z-scored ($\Delta\text{Inventory}_z$) across the full
+2006--2026 history to give a stationary, unit-variance series.
+
+\subsection{Alignment with Rolling Hessian Data}
+\label{sec:macro_align}
+
+All indicators are resampled to a monthly ``month-start'' (MS) frequency.
+The rolling Hessian dates (Section~\ref{sec:rolling_method}) are then
+joined to the macro panel using an asymmetric nearest-neighbour merge
+with a \SI{15}{day} tolerance, yielding 479 matched observations (241 Brent,
+238 WTI after quality filtering).
+
+Figure~\ref{fig:macro_dashboard} summarises the four primary indicators
+over the full sample.  Horizontal dotted lines mark the regime thresholds
+defined in the next section.  The four shaded vertical lines correspond to
+the crisis events annotated throughout this chapter.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth]{macro_dashboard.png}
+  \caption{Macro-financial indicators used in Chapter~\ref{ch:macro}.
+           \textit{Top to bottom:} OVX, VIX, Geopolitical Risk (GPR), and
+           z-scored EIA inventory changes.  Dotted lines show the regime
+           thresholds (OVX $= 60$; VIX $= 30$; GPR $= 200$).
+           Vertical dashed lines mark the GFC (Sept.\ 2008), Oil Supply
+           Glut (Jan.\ 2016), COVID-19 peak (Apr.\ 2020), and Ukraine
+           invasion (Mar.\ 2022).}
+  \label{fig:macro_dashboard}
+\end{figure}
+
+% ---
+\section{Regime Classification Framework}
+\label{sec:regime_class}
+
+\subsection{Rule-Based Regime Definition}
+\label{sec:regime_rules}
+
+Each month is assigned to one of five mutually exclusive regimes using the
+priority hierarchy in Table~\ref{tab:regime_def}.  Compound episodes (VIX
+$> 30$ \emph{and} OVX $> 60$) are assigned the highest priority because
+they represent simultaneous equity and oil stress, qualitatively distinct
+from either type alone.
+
+\begin{table}[H]
+  \centering
+  \caption{Rule-based market regime definitions.  Regimes are applied in
+           priority order (highest first); each month receives the
+           highest-priority label for which all conditions are met.}
+  \label{tab:regime_def}
+  \begin{tabular}{clll}
+    \toprule
+    Priority & Regime & Condition(s) & Canonical episodes \\
+    \midrule
+    1 (highest) & Compound         & VIX $> 30$ and OVX $> 60$ & GFC 2008, COVID 2020 \\
+    2           & Oil Stress       & OVX $> 60$                 & Q1 2009, Apr--May 2020 \\
+    3           & Financial Stress & VIX $> 30$                 & Oct 2008, Mar 2020 \\
+    4           & Geopolitical     & GPR $> 200$                & Feb 2022 \\
+    5 (default) & Calm             & none of the above          & 2012--2019 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+Applying these rules to the 241 monthly observations per underlying
+yields the following distribution: 216 Calm (90\%), 10 Financial Stress
+(4\%), 9 Compound (4\%), 3 Oil Stress (1\%), and 2 Geopolitical (1\%).
+The dominance of the Calm regime reflects the long periods of subdued
+volatility between crises; the episodic nature of stress is precisely
+what motivates the event-study analysis in Section~\ref{sec:event_studies}.
+
+\subsection{Regime Timeline}
+\label{sec:regime_timeline}
+
+Figure~\ref{fig:cn_regime_ts} plots the time series of
+$\log_{10}(\kappa_H)$ for Brent and WTI with background shading
+corresponding to the five regimes.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth]{cn_regime_ts.png}
+  \caption{Rolling Hessian condition number $\kappa_H$ (log$_{10}$ scale)
+           with market-regime background shading.  Amber: Financial Stress;
+           salmon: Oil Stress; purple: Compound; blue: Geopolitical; white:
+           Calm.  Dashed vertical lines mark the four major crisis dates.
+           The figure reveals that $\kappa_H$ does not uniformly spike
+           during stress regimes; instead, its behaviour is regime- and
+           underlying-specific.}
+  \label{fig:cn_regime_ts}
+\end{figure}
+
+\subsection{Regime-Conditional Identifiability}
+\label{sec:regime_boxplot}
+
+Figure~\ref{fig:regime_boxplot} shows box plots of $\log_{10}(\kappa_H)$
+stratified by regime for each underlying.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth]{regime_boxplot.png}
+  \caption{Distribution of $\log_{10}(\kappa_H)$ by market regime for
+           Brent (left) and WTI (right).  The number of months in each
+           regime is annotated above each box.  The Calm median lies near
+           5.7 for both underlyings.  Financial Stress raises $\kappa_H$
+           for Brent but lowers it for WTI, while Oil Stress lowers it
+           for both --- reflecting the enhanced information content of
+           extreme volatility surfaces.}
+  \label{fig:regime_boxplot}
+\end{figure}
+
+A key finding from Figure~\ref{fig:regime_boxplot} is the \emph{asymmetric
+Brent--WTI response}: Financial Stress (VIX $> 30$) raises the Brent
+condition number (median $10^{6.3}$) while simultaneously \emph{lowering}
+the WTI condition number (median $10^{4.6}$).  One plausible explanation
+is that Brent is more thinly traded in crisis periods (WTI having deeper
+domestic US liquidity), so the Brent surface provides less cross-sectional
+information to identify $\kappa$ --- the sloppy direction identified in
+Chapter~\ref{ch:hessian} --- relative to WTI.
+
+% ---
+\section{Regression Analysis}
+\label{sec:macro_regression}
+
+\subsection{Model Specification}
+\label{sec:ols_spec}
+
+To quantify the relative importance of each indicator, the following
+cross-sectional time-series regression is estimated separately for each
+underlying:
+
+\begin{equation}
+  \log_{10}\!\bigl(\kappa_H^{(t)}\bigr)
+  = \beta_0
+  + \beta_1 \widetilde{\mathrm{OVX}}_t
+  + \beta_2 \widetilde{\mathrm{VIX}}_t
+  + \beta_3 \widetilde{\log(\mathrm{GPR})}_t
+  + \beta_4 \widetilde{\Delta\mathrm{Inv}_{z,t}}
+  + \beta_5 \widetilde{\mathrm{DXY}}_t
+  + \varepsilon_t ,
+  \label{eq:ols_spec}
+\end{equation}
+
+where a tilde ($\,\widetilde{\cdot}\,$) denotes standardisation to zero
+mean and unit variance:
+
+\begin{equation}
+  \widetilde{x}_t = \frac{x_t - \bar{x}}{s_x} .
+  \label{eq:standardise}
+\end{equation}
+
+Standardisation makes the $\hat\beta$ coefficients directly comparable
+across indicators.  Standard errors are Heteroscedasticity and
+Autocorrelation Consistent (HAC) using the Newey--West estimator with
+three lags \citep{transtrum2010}, appropriate for the monthly time-series
+structure and the mild serial correlation visible in the residuals
+(Durbin--Watson $\approx 1.2$--$1.3$).
+
+\subsection{Estimation Results}
+\label{sec:ols_results}
+
+Table~\ref{tab:regression} presents the estimation results for Brent and
+WTI.
+
+\begin{table}[H]
+  \centering
+  \caption{HAC OLS regression results.  Dependent variable:
+           $\log_{10}(\kappa_H)$.  All regressors standardised.
+           Standard errors (Newey--West, 3 lags) in parentheses.
+           ${}^{*}p < 0.05$, ${}^{**}p < 0.01$.}
+  \label{tab:regression}
+  \begin{tabular}{lrr}
+    \toprule
+    & Brent (CO1) & WTI (CL1) \\
+    \midrule
+    Intercept                          & $5.842^{**}$ & $5.760^{**}$ \\
+                                       & $(0.110)$    & $(0.123)$    \\
+    OVX                                & $-0.181$     & $-0.299$     \\
+                                       & $(0.138)$    & $(0.224)$    \\
+    VIX                                & $0.044$      & $-0.015$     \\
+                                       & $(0.164)$    & $(0.172)$    \\
+    $\log(\mathrm{GPR})$               & $-0.089$     & $-0.258^{*}$ \\
+                                       & $(0.086)$    & $(0.122)$    \\
+    $\Delta\mathrm{Inventory}_z$       & $-0.016$     & $0.035$      \\
+                                       & $(0.093)$    & $(0.101)$    \\
+    DXY                                & $-0.241$     & $-0.228$     \\
+                                       & $(0.152)$    & $(0.137)$    \\
+    \midrule
+    $R^2$                              & $0.089$      & $0.144$      \\
+    Adj.\ $R^2$                        & $0.068$      & $0.124$      \\
+    $N$                                & $225$        & $224$        \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+The overall $F$-test is significant at the 1\% level for WTI ($p = 0.0007$)
+and at the 5\% level for Brent ($p = 0.009$), confirming that the five
+macro indicators collectively contain information about calibration
+identifiability.  The adjusted $R^2$ values (6.8\% and 12.4\%) are modest,
+suggesting that a substantial fraction of $\kappa_H$ variation is driven by
+idiosyncratic surface features not captured by these aggregate indicators.
+
+\subsection{Coefficient Comparison}
+\label{sec:coef_comparison}
+
+Figure~\ref{fig:regression_forest} visualises the standardised coefficients
+and their 95\% HAC confidence intervals side by side for the two underlyings.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.85\textwidth]{regression_forest.png}
+  \caption{Standardised HAC OLS coefficients ($\hat\beta \pm$ 95\% CI) for
+           Brent (seagreen) and WTI (steelblue).  All coefficients are
+           negative, indicating that higher market stress is associated with
+           \emph{lower} $\kappa_H$ (better identifiability).  DXY and OVX
+           show the largest point estimates; $\log(\mathrm{GPR})$ is the
+           only predictor statistically significant at the 5\% level,
+           and only for WTI.}
+  \label{fig:regression_forest}
+\end{figure}
+
+\subsection{Model Fit and Interpretation}
+\label{sec:ols_interp}
+
+All five standardised coefficients are negative (Figure~\ref{fig:regression_forest}),
+indicating that higher values of any macro-stress indicator are associated
+with a \emph{lower} Hessian condition number.  This counterintuitive result
+admits a natural economic interpretation: during high-volatility regimes the
+implied volatility surface exhibits steeper skew and more pronounced term
+structure, providing richer cross-sectional information that constrains the
+Heston parameters more tightly.  The curvature information embedded in an
+extreme surface effectively compensates for the model's structural
+near-degeneracy, reducing the ratio $\lambda_{\max}/|\lambda_{\min}|$.
+
+The scatter plots in Figure~\ref{fig:scatter_indicators} illustrate the
+bivariate relationships between each indicator and $\log_{10}(\kappa_H)$.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth]{scatter_indicators.png}
+  \caption{Scatter plots of $\log_{10}(\kappa_H)$ against each macro
+           indicator for Brent (top row) and WTI (bottom row).  Lines
+           show bivariate OLS fits; annotated $R^2$ values measure the
+           explained variation in each pairwise regression.  Symbol
+           ${}^\dagger$ indicates $p < 0.10$ and ${}^*$ indicates
+           $p < 0.05$.}
+  \label{fig:scatter_indicators}
+\end{figure}
+
+% ---
+\section{Event Studies}
+\label{sec:event_studies}
+
+Figure~\ref{fig:event_study} zooms into $\pm 6$ months around each of the
+four major crisis peaks.  Each panel shows OVX (monthly bars, left axis)
+alongside $\log_{10}(\kappa_H)$ for both underlyings (lines, right axis).
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth]{event_study.png}
+  \caption{Event study panels for the four major market disruptions.
+           Bars (left axis): monthly mean OVX.  Lines (right axis):
+           $\log_{10}(\kappa_H)$ for Brent (solid seagreen) and WTI
+           (dashed steelblue).  Vertical dashed lines mark the crisis
+           peak date.}
+  \label{fig:event_study}
+\end{figure}
+
+\subsection{Global Financial Crisis 2008}
+\label{sec:event_gfc}
+
+In the months surrounding September 2008, OVX spiked above 100 as global
+risk appetite collapsed.  Both underlyings show a decline in $\kappa_H$
+during the acute phase, consistent with the regression finding that higher
+OVX is associated with better identifiability.  However, Brent's condition
+number rebounds more sharply post-crisis, reflecting the thinner post-GFC
+Brent options market.
+
+\subsection{Oil Supply Glut 2016}
+\label{sec:event_glut}
+
+The 2015--2016 supply glut --- driven by OPEC's decision not to cut
+production in November 2014 --- saw OVX reach sustained elevated levels
+through January 2016.  Unlike the GFC, this was a fundamentals-driven
+rather than financial-contagion episode.  The $\kappa_H$ time series shows
+a gradual decline over this period, suggesting that the prolonged elevated
+volatility was sufficient to improve parameter identifiability even in the
+absence of an acute fear spike.
+
+\subsection{COVID-19 Demand Collapse 2020}
+\label{sec:event_covid}
+
+April 2020 produced the most extreme episode in the sample: WTI futures
+briefly traded negative on 20 April 2020, and OVX exceeded 300.  The
+rolling Hessian calibrator flags April and May 2020 for WTI as high-RMSE
+observations (13.97\% and 22.70\% respectively), reflecting the Heston
+model's inability to fit an extreme negative-skew surface.  These months
+are excluded from the quality-filtered analysis.  Brent, whose contracts
+did not go negative, shows a sharp but recoverable decline in $\kappa_H$.
+
+\subsection{Ukraine War 2022}
+\label{sec:event_ukraine}
+
+The Russian invasion of Ukraine in February 2022 elevated GPR above 400
+--- the highest reading since the index began.  OVX remained more moderate
+($\approx 50$), consistent with a geopolitical rather than financial shock.
+The condition number responds mildly for both underlyings, confirming the
+regression result that GPR has a statistically significant effect only for
+WTI and is otherwise a secondary predictor.
+
+% ---
+\section{Discussion}
+\label{sec:macro_discussion}
+
+\subsection{OVX as Primary Driver}
+\label{sec:ovx_driver}
+
+Across all specifications the OVX coefficient carries the largest point
+estimate in absolute value.  Its negative sign --- higher oil volatility
+implies lower $\kappa_H$ --- is consistent with the information-content
+argument: a higher-OVX environment deforms the implied volatility surface
+in ways that are geometrically more informative for Heston parameter
+identification.  In low-OVX (flat surface) environments, many
+$(v_0, \kappa, \theta)$ triplets produce essentially identical smile
+profiles, enlarging the flat directions of the loss landscape and raising
+$\kappa_H$.
+
+\subsection{Asymmetric Brent--WTI Response}
+\label{sec:brent_wti_asymm}
+
+The regression $R^2$ is systematically higher for WTI (14.4\%) than for
+Brent (8.9\%), and the GPR coefficient is statistically significant only
+for WTI.  One structural explanation is that WTI's open interest is heavily
+concentrated in the 1M--3M maturities used for calibration, making the
+surface's shape more responsive to macro shocks.  Brent has a more
+distributed term structure of open interest, potentially smoothing macro
+effects out of the observable surface.
+
+\subsection{Regime Detection and Practical Implications}
+\label{sec:regime_implications}
+
+The regime-conditional medians in Figure~\ref{fig:regime_boxplot} suggest
+that a practitioner could use real-time OVX and VIX readings to forecast
+whether a given day's calibration is likely to be well-conditioned.  A
+monitoring rule of the form
+\[
+  \hat\kappa_H > 10^7 \implies \text{flag calibration for manual review}
+\]
+would trigger on roughly 5\% of months in the sample.  Coupling this with
+the observed negative OVX--$\kappa_H$ correlation, traders should expect
+\emph{worse} identifiability (higher $\kappa_H$) during calm, low-OVX
+periods --- precisely when practitioners may be least vigilant about
+parameter stability.
+
+% ---
+\section{Summary}
+\label{sec:macro_summary}
+
+This chapter connected the rolling Hessian condition number $\kappa_H(t)$
+to five macro-financial indicators across the 2006--2026 sample.  The main
+findings are:
+
+\begin{enumerate}
+  \item \textbf{All indicators are negatively correlated with
+        $\kappa_H$.}  Higher market stress --- in OVX, VIX, GPR, or DXY
+        --- is associated with better Heston parameter identifiability,
+        because stressed surfaces carry more geometric information.
+  \item \textbf{The five-indicator model explains 8.9\% (Brent) and
+        14.4\% (WTI) of $\kappa_H$ variation.}  The remainder reflects
+        idiosyncratic surface structure, consistent with the stylised-facts
+        evidence in Chapter~\ref{ch:loading} that crude surfaces vary widely
+        in skew shape even at similar volatility levels.
+  \item \textbf{GPR is the only statistically significant predictor at the
+        5\% level} (for WTI).  OVX and DXY show the largest point
+        estimates but do not individually cross the significance threshold
+        after HAC correction, underscoring the difficulty of explaining
+        non-linear surface geometry with linear macro factors.
+  \item \textbf{Brent and WTI exhibit an asymmetric response to Financial
+        Stress regimes.}  This asymmetry is robust across the regression
+        and boxplot analyses and likely reflects structural differences in
+        options market liquidity between the two benchmarks.
+\end{enumerate}
+
+Taken together, Chapters~\ref{ch:hessian} and~\ref{ch:macro} provide a
+complete picture of the Heston calibration landscape for crude oil options:
+the geometry is consistently ill-conditioned ($\kappa_H \sim 10^5$--$10^6$
+in calm markets), the sloppy direction is almost always the mean-reversion
+speed $\kappa$, and the degree of ill-conditioning is modestly but
+significantly linked to observable macro-financial conditions.
+
+% ============================================================
+
+% ============================================================
+%  CHAPTER 7 — SVJ EXTENSION: BATES (1996) MODEL
+% ============================================================
+
+\chapter{Extending to Stochastic Volatility with Jumps: The Bates (1996) Model}
+\label{ch:svj}
+
+% ---------------------------------------------------------------------------
+\section{Motivation}
+\label{sec:svj_motivation}
+% ---------------------------------------------------------------------------
+
+Chapter~\ref{ch:hessian} demonstrated that the Heston model suffers from chronic
+parameter degeneracy when calibrated to crude oil options: the mean-reversion
+speed $\kappa$ is consistently sloppy (condition-number contributions $> 99\%$),
+and the $(\xi, \rho)$ pair exhibits a calibration ridge that prevents sharp
+identification of both skew parameters simultaneously. The natural question is
+whether these pathologies are fundamental features of the crude oil smile or
+artefacts of the Heston model's limited parametric flexibility.
+
+The \citet{bates1996} Stochastic Volatility with Jumps (SVJ) model offers a
+principled extension. By adding a compound Poisson log-normal jump component to
+the Heston log-price dynamics, SVJ introduces three additional degrees of freedom
+--- jump intensity $\lambda$, mean log-jump $\mu_J$, and jump size volatility
+$\sigma_J$ --- that can absorb the excess kurtosis and short-dated skew mass
+that pure diffusion struggles to fit. For crude oil in particular, SVJ is
+appealing for three reasons:
+
+\begin{enumerate}
+  \item \textbf{Left-tail mass.}  Crude oil prices are subject to sudden, large
+        drawdowns (demand collapses, inventory gluts) that generate fat left tails
+        on short-dated smiles. An explicit jump component can absorb this excess
+        kurtosis without requiring extreme $\xi$ or $\rho$ values, thereby reducing
+        the calibration pressure on the diffusion parameters.
+
+  \item \textbf{Decoupling of skew and term structure.}  In pure Heston, the
+        near-term skew slope and the term-structure decay are governed by the same
+        $(\kappa, \xi, \rho)$ triplet. The jump component provides an additional
+        short-lived skew mechanism that decays as $e^{-\lambda T}$, giving the model
+        an independent handle on the 1M left wing without distorting the 12M or 24M
+        surface.
+
+  \item \textbf{Potential improvement in $\kappa$-identifiability.}  By delegating
+        short-term skew to the jump component, the mean-reversion speed $\kappa$
+        becomes less constrained by short-maturity data and may be better identified
+        from the medium-to-long end of the surface, where the diffusion term dominates.
+        Whether this actually reduces the Hessian condition number is the central
+        empirical question of this chapter.
+\end{enumerate}
+
+The analysis in this chapter uses the same static snapshot (1 December 2021),
+the same Bloomberg OVDV surface, and the same Hessian spectral methodology as
+Chapter~\ref{ch:hessian}, enabling a direct like-for-like comparison.
+
+% ---------------------------------------------------------------------------
+\section{The Bates (1996) SVJ Model}
+\label{sec:svj_model}
+% ---------------------------------------------------------------------------
+
+\subsection{Price and Variance Dynamics}
+
+Under the risk-neutral measure, the SVJ model specifies the joint evolution of
+the futures price $S_t$ and instantaneous variance $V_t$ as:
+
+\begin{align}
+  \frac{dS_t}{S_t} &= \bigl(r - q - \lambda\bar{\mu}\bigr)\,dt
+                      + \sqrt{V_t}\,dW_t^S
+                      + (e^{J} - 1)\,dN_t
+  \label{eq:svj_S} \\
+  dV_t &= \kappa(\theta - V_t)\,dt + \xi\sqrt{V_t}\,dW_t^V
+  \label{eq:svj_V}
+\end{align}
+
+where $\mathrm{d}W_t^S\,\mathrm{d}W_t^V = \rho\,dt$.
+
+\subsection{Jump Component}
+
+The jump process $N_t$ is a standard Poisson process with intensity $\lambda$
+(expected number of jumps per year). Jump sizes are log-normally distributed:
+
+\begin{equation}
+  J \sim \mathcal{N}(\mu_J,\;\sigma_J^2),
+  \label{eq:jump_dist}
+\end{equation}
+
+so the proportional price change on a jump is $e^J - 1$. The drift correction
+$\bar{\mu} = e^{\mu_J + \frac{1}{2}\sigma_J^2} - 1$ ensures martingale pricing
+under the risk-neutral measure.
+
+\subsection{Risk-Neutral Characteristic Function}
+
+The key tractability result of \citet{bates1996} is that the SVJ characteristic
+function factorises as a product of the Heston component and a jump correction:
+
+\begin{equation}
+  \varphi_{\mathrm{SVJ}}(u,T)
+  = \varphi_{\mathrm{Heston}}(u,T)
+    \cdot \exp\!\Bigl(\lambda T
+    \bigl[e^{iu\mu_J - \frac{1}{2}\sigma_J^2 u^2} - 1
+           - iu(e^{\mu_J + \frac{1}{2}\sigma_J^2} - 1)\bigr]\Bigr)
+  \label{eq:svj_cf}
+\end{equation}
+
+where $\varphi_{\mathrm{Heston}}$ is the Lord--Kahl (2010) formulation used
+throughout this dissertation (equation~\ref{eq:char_func}). The jump correction
+term is the characteristic function of a compound Poisson process with normally
+distributed log-jumps, centred to have zero risk-neutral mean. Because the
+Carr-Madan FFT pricer (Chapter~\ref{ch:methodology}) requires only the
+characteristic function at a grid of frequencies, extending from Heston to SVJ
+requires only multiplying the Heston $\varphi$ by the closed-form jump factor.
+No other modification to the pricing machinery is needed.
+
+\subsection{Parameter Interpretation and Calibration Bounds}
+
+Table~\ref{tab:svj_params} lists all eight parameters of the SVJ model.
+
+\begin{table}[H]
+  \centering
+  \caption{SVJ model parameters: economic interpretation and calibration bounds}
+  \label{tab:svj_params}
+  \small
+  \begin{tabular}{clll}
+    \toprule
+    Parameter  & Symbol     & Economic interpretation             & Bounds           \\
+    \midrule
+    Mean-rev.\ speed & $\kappa$ & Speed at which variance reverts to $\theta$ & $[0.01,\;20]$  \\
+    Long-run var.    & $\theta$ & Unconditional variance; $\sqrt{\theta}$ = long-run vol & $[0.001,\;2]$ \\
+    Vol of vol       & $\xi$    & Diffusion vol of the variance process  & $[0.01,\;2]$   \\
+    Corr.            & $\rho$   & Spot-variance correlation              & $[-0.999,\;0.999]$ \\
+    Init.\ var.      & $v_0$    & Variance at calibration date           & $[0.001,\;2]$  \\
+    Jump intensity   & $\lambda$ & Expected jumps per year               & $[0.01,\;10]$  \\
+    Mean log-jump    & $\mu_J$  & Average log-jump size (negative = downside) & $[-2,\;2]$ \\
+    Jump size vol    & $\sigma_J$ & Dispersion of jump sizes             & $[0.01,\;2]$   \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+% ---------------------------------------------------------------------------
+\section{Calibration Methodology}
+\label{sec:svj_calibration_method}
+% ---------------------------------------------------------------------------
+
+The SVJ calibration follows an identical two-stage procedure to the Heston
+calibration in Chapter~\ref{ch:methodology}:
+
+\begin{enumerate}
+  \item \textbf{Global search.}  Differential evolution over the 8-dimensional
+        parameter box in Table~\ref{tab:svj_params} with 400 iterations and a
+        population of 15 members per dimension. The seed is fixed at 42 for
+        reproducibility.
+  \item \textbf{Local refinement.}  L-BFGS-B from the best global solution,
+        with bounds retained, converging to tolerance $10^{-12}$.
+\end{enumerate}
+
+The objective function is the same vega-weighted mean-squared error of
+Black-76 implied volatilities used throughout:
+\begin{equation}
+  \mathcal{L}(\Theta_{\mathrm{SVJ}}) =
+  \frac{\sum_{i} w_i \bigl(\hat{\sigma}_i^{\mathrm{SVJ}} - \sigma_i^{\mathrm{mkt}}\bigr)^2}
+       {\sum_i w_i},
+  \qquad w_i = \exp\!\Bigl(-\tfrac{1}{2}\Bigl(\tfrac{K_i/S - 1}{0.1}\Bigr)^2\Bigr),
+  \label{eq:svj_obj}
+\end{equation}
+where $\hat{\sigma}_i^{\mathrm{SVJ}}$ is the Black-76 implied vol obtained
+by inverting the Carr-Madan price for the SVJ model.
+
+% ---------------------------------------------------------------------------
+\section{Calibration Results: 1 December 2021}
+\label{sec:svj_results}
+% ---------------------------------------------------------------------------
+
+\subsection{Smile Fit: SVJ vs Heston}
+
+Figure~\ref{fig:svj_smile_co1} and Figure~\ref{fig:svj_smile_cl1} compare the
+market implied volatility surface (scatter), the Heston fit (dashed), and the
+SVJ fit (solid) for each of the six constant-maturity tenors on 1 December 2021.
+RMSE values appear in the figure titles. A key result is that the SVJ RMSE \emph{matches or slightly exceeds} Heston for
+both contracts: Brent CO1 SVJ 1.64 vs Heston 1.54 vol pts; WTI CL1 SVJ 2.73 vs
+Heston 2.74 vol pts (marginal improvement of 0.01 vol pts).  Rather than the
+jump component delivering a clear fit improvement, the three additional parameters
+introduce optimization complexity that the 42-option surface cannot fully resolve,
+with multiple parameters collapsing to constraint boundaries in both contracts.
+This finding is examined further in Section~\ref{sec:svj_geometry}.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth]{svj_smile_co1}
+  \caption{SVJ vs Heston smile fit — Brent (CO1), 1 December 2021.
+           Each panel shows market IVs (blue circles), Heston (red dashed),
+           and SVJ/Bates (orange solid). RMSE figures in the title refer to
+           the full surface fit in vol points.}
+  \label{fig:svj_smile_co1}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth]{svj_smile_cl1}
+  \caption{SVJ vs Heston smile fit — WTI (CL1), 1 December 2021.}
+  \label{fig:svj_smile_cl1}
+\end{figure}
+
+\subsection{Calibrated Parameter Vector}
+
+Table~\ref{tab:svj_calibration_results} reports the calibrated SVJ parameters
+alongside the Heston reference calibration. The jump parameters $(λ, \mu_J, \sigma_J)$
+are the three new columns.
+
+\begin{table}[H]
+  \centering
+  \caption{Heston and SVJ calibrated parameters — 1 December 2021}
+  \label{tab:svj_calibration_results}
+  \small
+  \begin{tabular}{lcccccccc}
+    \toprule
+    & $\hat{\kappa}$ & $\hat{\theta}$ & $\hat{\xi}$ & $\hat{\rho}$ & $\hat{v}_0$
+    & $\hat{\lambda}$ & $\hat{\mu}_J$ & $\hat{\sigma}_J$ \\
+    \midrule
+    \multicolumn{9}{l}{\textit{Panel A: Heston (5 parameters)}} \\
+    Brent (CO1) & 0.335 & 0.001 & 1.109 & $-$0.796 & 0.357 & --- & --- & --- \\
+    WTI (CL1)   & 0.045 & 2.000 & 2.000 & $-$0.773 & 0.432 & --- & --- & --- \\
+    \midrule
+    \multicolumn{9}{l}{\textit{Panel B: SVJ / Bates (8 parameters)}} \\
+    Brent (CO1) & 0.010$^\dagger$ & 0.001$^\dagger$ & 2.000$^\dagger$ & $-$0.640 & 0.438 & 0.214 & $-$0.307 & 0.010$^\dagger$ \\
+    WTI (CL1)   & 3.003 & 0.001$^\dagger$ & 2.000$^\dagger$ & $-$0.999$^\dagger$ & 0.496 & 0.454 & $-$0.546 & 0.010$^\dagger$ \\
+    \midrule
+    \multicolumn{9}{l}{\textit{Panel C: RMSE comparison (vol points)}} \\
+    Brent (CO1) & \multicolumn{4}{l}{Heston: 1.54 vpts} & \multicolumn{4}{l}{SVJ: 1.64 vpts (+0.10)} \\
+    WTI (CL1)   & \multicolumn{4}{l}{Heston: 2.74 vpts} & \multicolumn{4}{l}{SVJ: 2.73 vpts ($-$0.01)} \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\noindent\textit{Notes:} Heston parameters are sourced from \texttt{data\_plots/rolling\_hessian.csv}
+at 2021-12-01. SVJ parameters are calibrated by \texttt{calibrate\_svj.py}.
+$^\dagger$ denotes parameters at a constraint boundary (lower or upper bound); the true optimum
+may lie beyond the feasible region.  Both calibrations violate the Feller condition.
+For CO1, 4 of 8 parameters lie at a bound; for CL1, 4 of 8 parameters also lie at
+bounds, most notably $\rho = -0.999$ (minimum feasible correlation).  The SVJ RMSE
+\emph{matches or slightly exceeds} Heston for both contracts: the jump component absorbs
+no additional explanatory content on this date, a key finding examined in
+Section~\ref{sec:svj_geometry}.
+
+\subsection{Feller Condition and Model Diagnostics}
+
+As with the Heston calibration, the Feller condition $2\kappa\theta \geq \xi^2$ is
+checked post-hoc but not imposed as a hard constraint during optimisation. Violation
+of the Feller condition implies that the calibrated variance process can reach zero,
+introducing a boundary-absorption risk that the Heston (and hence SVJ) diffusion
+framework does not handle gracefully. This is particularly likely when $\theta$ is
+calibrated near its lower bound.
+
+% ---------------------------------------------------------------------------
+\section{Spectral Geometry of the SVJ Calibration Landscape}
+\label{sec:svj_geometry}
+% ---------------------------------------------------------------------------
+
+\subsection{Hessian Matrix and Eigenvalue Spectrum}
+
+Using the same central-finite-difference scheme as in Chapter~\ref{ch:hessian},
+we compute the $8 \times 8$ Hessian of $\mathcal{L}(\Theta_{\mathrm{SVJ}})$ at
+the calibrated optimum for Brent CO1.  The resulting condition number is
+$\kappa_H^{\mathrm{SVJ}} \approx 2{,}804$, compared with
+$\kappa_H^{\mathrm{Heston}} \approx 52{,}813$ for the same date
+(Chapter~\ref{ch:hessian}).
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.72\textwidth]{svj_hessian_matrix}
+  \caption{$8 \times 8$ Hessian heatmap of the SVJ calibration loss — Brent (CO1),
+           1 December 2021. Warm colours indicate positive curvature (stiff
+           directions); cool colours indicate negative curvature (potential
+           saddle directions). The condition number $\kappa_H$ is reported
+           in the figure title.}
+  \label{fig:svj_hessian_matrix}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth]{svj_eigenvalue_spectrum}
+  \caption{Eigenvalue spectrum comparison: Heston (left) vs SVJ (right),
+           Brent (CO1), 1 December 2021. Bar height represents $|\lambda_i|$
+           on a log scale. Red bars indicate negative eigenvalues (saddle
+           directions). $\kappa_H$ denotes the ratio of the largest to
+           smallest positive eigenvalue.}
+  \label{fig:svj_eigenvalue_spectrum}
+\end{figure}
+
+\subsection{Sloppy and Stiff Directions in SVJ}
+
+The eigenvector corresponding to the smallest positive eigenvalue (the sloppiest
+direction) reveals which parameter combination is least constrained by the
+observed implied volatility surface. In the Heston calibration,
+Chapter~\ref{ch:hessian} found that the sloppy direction loads almost entirely
+on $\kappa$ (coefficient $\approx 0.99$), with negligible contributions from
+other parameters. In the SVJ model, the sloppy direction may redistribute
+across $(\kappa, \lambda)$ if the jump intensity absorbs some of the
+short-maturity sensitivity that previously forced $\kappa$ to dominate.
+
+Alternatively, $\lambda$ itself may become the new sloppy parameter: if the
+surface does not contain enough curvature information to separately identify
+the jump frequency from the diffusion-driven variance dynamics, the jump
+intensity will be poorly constrained --- the degeneracy is not removed but
+relocated to a different subspace.
+
+\subsection{Comparison with the Heston Condition Number}
+
+Figure~\ref{fig:svj_eigenvalue_spectrum} places the SVJ and Heston condition
+numbers side by side. For Brent (CO1) on 1 December 2021:
+
+\begin{center}
+  $\kappa_H^{\mathrm{Heston}} \approx 52{,}813 \qquad
+   \kappa_H^{\mathrm{SVJ}} \approx 2{,}804$
+\end{center}
+
+The SVJ landscape is approximately 19 times \emph{better} conditioned than the
+Heston landscape on this date.  This is the first case discussed in
+Section~\ref{sec:svj_discussion}: the jump component has absorbed the
+short-term skew burden, partially releasing the mean-reversion speed $\kappa$
+from its sloppy role and reducing the overall curvature ratio.  The result is
+somewhat surprising given the multiple boundary parameters in the calibrated
+solution, and the important caveats are discussed in Section~\ref{sec:svj_discussion}.
+
+% ---------------------------------------------------------------------------
+\section{Discussion}
+\label{sec:svj_discussion}
+% ---------------------------------------------------------------------------
+
+\subsection{Does SVJ Improve Identifiability?}
+
+The central question of this chapter is whether the SVJ extension reduces
+the Hessian condition number relative to the Heston baseline.  The empirical
+answer for 1 December 2021 is a qualified yes:
+$\kappa_H^{\mathrm{SVJ}} \approx 2{,}804 \ll
+ \kappa_H^{\mathrm{Heston}} \approx 52{,}813$.
+
+The most natural interpretation is that the jump component absorbs short-dated
+implied-volatility curvature that was previously forcing the Heston model into
+extreme, poorly-identified regions of $(\kappa, \xi, \rho)$ space.  By
+delegating this task to $(\lambda, \mu_J)$, the SVJ diffusion parameters become
+better-constrained and the Hessian eigenvalue ratio falls by a factor of
+approximately 19.
+
+However, two important caveats moderate this optimistic reading.
+
+\textbf{First, four of the eight SVJ parameters lie at constraint boundaries}
+($\kappa$, $\theta$, $\xi$, $\sigma_J$ for CO1; $\theta$, $\xi$, $\rho$,
+$\sigma_J$ for CL1).  The Hessian is evaluated at a boundary point rather than
+an interior optimum.  Finite-difference curvature estimates at boundaries tend
+to be unreliable, and the reported $\kappa_H^{\mathrm{SVJ}}$ may not accurately
+reflect the true curvature of the interior landscape.
+
+\textbf{Second, the SVJ RMSE does not improve upon Heston} (CO1: 1.64 vs
+1.54 vol pts; CL1: 2.73 vs 2.74 vol pts).  The apparent identifiability gain
+may therefore reflect a degenerate solution in which the jump component has
+not genuinely absorbed surface information, but has instead been fitted to a
+noise direction.  Regularisation via Bayesian priors on jump parameters ---
+anchored to historical return distributions where jumps are more clearly
+visible --- would be the natural next step to disentangle these effects.
+
+\subsection{Loss Landscapes Across Key Parameter Pairs}
+\label{sec:svj_landscapes}
+
+Five cross-sections of the calibration loss $\mathcal{L}(\Theta_\mathrm{SVJ})$
+are computed by varying two parameters simultaneously while holding the
+remaining six at the calibrated optimum for Brent (CO1), 1 December 2021.
+Each surface is shown in $\log_{10}(\mathrm{RMSE})$ to expose both the
+global ridge topology and the fine structure near the minimum.
+
+\paragraph{$\lambda$ vs $\mu_J$ (jump intensity and mean log-jump size).}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.80\textwidth]{svj_loss_lam_muj}
+  \caption{SVJ 3D loss landscape: $\lambda$ vs $\mu_J$.
+           Brent (CO1), 1 December 2021. Red point = calibrated optimum.}
+  \label{fig:svj_loss_lam_muj}
+\end{figure}
+
+The $(\lambda, \mu_J)$ landscape tests whether the jump frequency and the
+average jump size are separately identified.  A ridge along the diagonal
+$\lambda |\mu_J| = \mathrm{const}$ would indicate that only total downside
+jump risk is constrained by the surface, not its individual components.
+
+\paragraph{$\rho$ vs $\xi$ (spot-variance correlation and vol-of-vol).}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.80\textwidth]{svj_loss_rho_sigma}
+  \caption{SVJ 3D loss landscape: $\rho$ vs $\xi$.
+           Brent (CO1), 1 December 2021.
+           Compare with the Heston $\rho$--$\xi$ landscape in
+           Chapter~\ref{ch:hessian}: the SVJ jump component may
+           soften the flat valley.  Red point = calibrated optimum.}
+  \label{fig:svj_loss_rho_sigma}
+\end{figure}
+
+The $(\rho, \xi)$ slice is the most important comparison with the pure-Heston
+result.  In the Heston model, these two parameters share a strong negative
+ridge: a more negative $\rho$ and a higher $\xi$ produce nearly identical
+skew profiles, creating a flat valley that drives the high condition number.
+With SVJ, part of the skew burden is delegated to the jump component, so the
+$(\rho, \xi)$ ridge should be weakened.  A steeper, more localised minimum in
+this plane would confirm that jumps genuinely improve the identifiability of
+the diffusion parameters.
+
+\paragraph{$\kappa$ vs $\lambda$ (mean-reversion speed and jump intensity).}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.80\textwidth]{svj_loss_kappa_lam}
+  \caption{SVJ 3D loss landscape: $\kappa$ vs $\lambda$.
+           Brent (CO1), 1 December 2021.
+           If the loss is flat along the $\kappa$ axis for all values of
+           $\lambda$, the mean-reversion speed remains unidentified regardless
+           of jump intensity.  Red point = calibrated optimum.}
+  \label{fig:svj_loss_kappa_lam}
+\end{figure}
+
+This is the most theoretically loaded cross-section.
+In pure Heston, $\kappa$ is the dominant sloppy direction: the surface is
+nearly flat as $\kappa$ varies from its lower bound to large values.
+The central question here is whether the jump component $\lambda$ interacts
+with $\kappa$ to \emph{sharpen} the minimum along the $\kappa$ axis, or
+whether the degeneracy simply persists.  A flat plateau in the $\kappa$
+direction across all $\lambda$ values would confirm that the
+mean-reversion speed is structurally unidentified in SVJ, not just Heston.
+
+\paragraph{$\rho$ vs $\lambda$ (diffusion skew vs jump-induced skew).}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.80\textwidth]{svj_loss_rho_lam}
+  \caption{SVJ 3D loss landscape: $\rho$ vs $\lambda$.
+           Brent (CO1), 1 December 2021.
+           A diagonal ridge would reveal a substitution effect: a less
+           negative $\rho$ can be compensated by a higher $\lambda$
+           (more frequent jumps) to produce the same left-tail skew.
+           Red point = calibrated optimum.}
+  \label{fig:svj_loss_rho_lam}
+\end{figure}
+
+The $(\rho, \lambda)$ landscape directly tests the \emph{skew substitution}
+hypothesis.  Under Heston, the negative correlation $\rho$ is the primary
+source of implied-volatility skew.  Under SVJ, downward jumps ($\mu_J < 0$
+combined with intensity $\lambda$) offer an alternative skew mechanism.  If
+the implied volatility surface cannot distinguish between continuous-path
+skew ($\rho$) and jump-induced skew ($\lambda$), a ridge will appear along
+the negative-$\rho$, high-$\lambda$ direction.
+
+\paragraph{$\mu_J$ vs $\xi$ (jump mean size vs diffusion vol-of-vol).}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.80\textwidth]{svj_loss_muj_sigma}
+  \caption{SVJ 3D loss landscape: $\mu_J$ vs $\xi$.
+           Brent (CO1), 1 December 2021.
+           Both parameters contribute to the left wing of the smile;
+           a ridge would indicate cross-model degeneracy between the
+           jump and diffusion channels.
+           Red point = calibrated optimum.}
+  \label{fig:svj_loss_muj_sigma}
+\end{figure}
+
+The $(\mu_J, \xi)$ cross-section exposes potential degeneracy between the
+\emph{jump channel} (left-tail mass controlled by the mean log-jump) and the
+\emph{diffusion channel} (smile curvature driven by vol-of-vol $\xi$).  Both
+parameters contribute to the left wing of short-dated smiles: a more negative
+$\mu_J$ (larger downside jumps) can partially substitute for a higher $\xi$
+in generating left skew.  A ridge along this diagonal would indicate that the
+two mechanisms are not separately resolved by the available surface data.
+
+\subsection{Limitations}
+
+Several limitations apply to this SVJ analysis.
+
+\paragraph{Single-date calibration.}
+The results are based on a single static snapshot. A rolling SVJ Hessian analysis
+(analogous to the full-sample Hessian in Chapter~\ref{ch:hessian}) would be needed
+to assess whether the SVJ identifiability properties are stable across regimes or
+whether SVJ provides gains only in specific market conditions.
+
+\paragraph{Jump parameters on boundary.}
+If the calibrated $\lambda$ or $\sigma_J$ hit their bounds, the Hessian curvature
+in those directions is poorly estimated by finite differences (the Hessian is
+evaluated at the boundary of the feasible set, not at an interior optimum). In
+practice this situation arises whenever the surface contains insufficient information
+to activate the jump component.
+
+\paragraph{No jump risk premium.}
+The calibration is performed under the risk-neutral measure. A richer treatment
+would distinguish physical from risk-neutral jump parameters and would use
+historical return data to inform priors on $\lambda$ and $\mu_J$, reducing the
+sloppy directions in the calibration.
+
+\paragraph{Feller condition.}
+As with Heston, the SVJ calibration frequently violates the Feller condition for
+the variance process. The SVJ extension addresses surface flexibility but does not
+resolve the structural limitation of the CIR variance dynamics near zero.
+
+% ============================================================
+%  CHAPTER 8 — GENERAL CONCLUSION AND FUTURE RESEARCH
+% ============================================================
+
+\chapter{General Conclusion and Future Research}
+\label{ch:conclusion}
+
+\section{What This Dissertation Set Out to Do}
+
+This dissertation set out to answer a deceptively simple question: how well can
+the Heston stochastic volatility model be calibrated to crude oil options?
+Starting from raw Bloomberg implied-volatility surfaces for Brent (CO1) and WTI
+(CL1) over the period 2006--2026, the work progressed through data engineering,
+stylised-facts documentation, a two-stage FFT calibration, a Hessian spectral
+analysis of the calibration landscape, a macro-financial regression
+linking identifiability to market conditions, and finally an extension to the
+Bates (1996) Stochastic Volatility with Jumps model (Chapter~\ref{ch:svj}).
+The answer that emerged was both informative and, in retrospect, humbling.
+
+\section{The Unexpected Difficulty of Calibrating Heston to Crude}
+
+The single most striking finding of this project was \emph{how hard} it is to
+pin down the Heston parameter vector for crude oil options --- an asset class
+for which the model was never originally designed.
+
+For equity indices, Heston (1993) was engineered to match a moderately skewed,
+term-structure-stable implied-volatility surface.  Crude oil surfaces present a
+qualitatively different challenge.  As documented in
+Chapter~\ref{ch:loading}, crude smiles are substantially steeper in the left
+wing, frequently exhibit negative term-structure slopes at short maturities
+during stress episodes, and show rapid surface rotation across market regimes.
+These features strain the Heston model in at least two ways.
+
+\begin{enumerate}
+  \item \textbf{The mean-reversion speed $\kappa$ is chronically unidentified.}
+        Chapter~\ref{ch:hessian} showed that the Hessian condition number
+        $\kappa_H$ averages $10^5$--$10^6$ in calm markets, with the sloppy
+        eigenvector loading almost exclusively (coefficient $\approx 0.99$) on
+        $\kappa$.  The model's level surface is essentially flat in the
+        mean-reversion direction: a wide range of $\kappa$ values produces
+        virtually indistinguishable fit on the observable grid of strikes and
+        maturities.  This is not a numerical artefact; it reflects a genuine
+        structural degeneracy of the characteristic function at short maturities.
+
+  \item \textbf{The volatility-of-volatility $\xi$ and correlation $\rho$
+        jointly govern skew, creating a ridge in parameter space.}  The two
+        parameters are only imperfectly separated by the term structure of the
+        smile, so the calibrated pair $(\xi, \rho)$ can slide along this ridge
+        without changing the residual sum of squares materially.  In crude oil,
+        where the left wing is steep and the right wing is flat, this
+        entanglement is more pronounced than in equity markets.
+
+  \item \textbf{Stressed surfaces are \emph{more} identifiable, not less.}
+        Perhaps the most counter-intuitive result: periods of high OVX and VIX
+        are associated with \emph{lower} $\kappa_H$, i.e.\ better conditioned
+        calibrations (Chapter~\ref{ch:macro}).  This happens because a steep,
+        information-rich surface provides stronger geometric constraints on the
+        parameter space.  The practical implication is that hedgers operating
+        in calm, low-volatility environments face the most severe
+        identifiability risk.
+\end{enumerate}
+
+The aggregate picture is that the Heston model, while tractable and widely
+used, is genuinely under-specified for the task of fitting crude oil smiles.
+The two-stage optimisation (differential evolution followed by
+Nelder-Mead) succeeded in achieving sub-4 vol-point RMSE on most dates, but
+the resulting parameters should be treated as \emph{summary statistics of the
+surface} rather than structural estimates of the underlying volatility process.
+
+\section{Directions for Future Research}
+
+\subsection{Stochastic Volatility with Jumps (SVJ)}
+
+\textbf{Chapter~\ref{ch:svj} executes this extension in full.}  The most
+natural complement to the Heston analysis is the \textbf{Stochastic Volatility
+with Jumps (SVJ)} specification --- the Bates (1996) model, which adds a
+compound Poisson jump component to the log-price dynamics:
+
+\begin{equation}
+  \frac{dS_t}{S_t} = (r - q - \lambda\bar{\mu})\,dt
+                   + \sqrt{V_t}\,dW_t^S
+                   + (e^{J} - 1)\,dN_t,
+  \label{eq:svj}
+\end{equation}
+
+where $N_t$ is a Poisson process with intensity $\lambda$, jump sizes
+$J \sim \mathcal{N}(\mu_J, \sigma_J^2)$, and $\bar{\mu} = e^{\mu_J +
+\frac{1}{2}\sigma_J^2} - 1$ is the compensator.  The characteristic
+function remains in closed form, so the Carr-Madan FFT pricer used in
+Chapter~\ref{ch:methodology} requires only a trivial modification to
+accommodate the three additional parameters $(\lambda, \mu_J, \sigma_J)$.
+
+SVJ is appealing for crude oil for three concrete reasons, each of which
+Chapter~\ref{ch:svj} investigates empirically:
+
+\begin{enumerate}
+  \item \textbf{Left-tail mass.}  Crude oil prices are subject to sudden,
+        large drawdowns (supply shocks, demand collapses) that generate fat
+        left tails on short-dated smiles.  A diffusion alone cannot replicate
+        this mass without extreme $\xi$ or $\rho$ values; an explicit jump
+        component absorbs the excess kurtosis directly.
+
+  \item \textbf{Decoupling of skew and term structure.}  In pure Heston, skew
+        and term-structure slope are governed by the same $(\kappa, \xi, \rho)$
+        triplet.  Jumps provide an additional, short-lived skew mechanism that
+        decays as $e^{-\lambda T}$, giving the model an independent handle on
+        the near-term left wing without distorting the long end.
+
+  \item \textbf{Potential improvement in $\kappa$-identifiability.}  By
+        delegating short-term skew to the jump component, the mean-reversion
+        speed $\kappa$ may become better identified from the medium-to-long-dated
+        part of the surface.  Chapter~\ref{ch:svj} evaluates whether this
+        reduces $\kappa_H$ or merely shifts the sloppy direction to the jump
+        intensity $\lambda$.
+\end{enumerate}
+
+The practical cost is three additional parameters and a risk that jump
+intensity $\lambda$ becomes the new sloppy direction.
+Chapter~\ref{ch:svj} applies the full Hessian spectral methodology to the
+$8\times 8$ SVJ calibration landscape and draws a direct comparison with
+the Heston condition number reported in Chapter~\ref{ch:hessian}.
+
+\subsection{Other Extensions}
+
+Beyond SVJ, several further directions arise naturally from the findings.
+
+\paragraph{Rough volatility.}  The Rough Heston model (El~Euch and
+Rosenbaum, 2019) replaces the Ornstein-Uhlenbeck variance process with a
+fractional Brownian motion of Hurst exponent $H < \frac{1}{2}$.  Rough
+models match short-maturity ATM skew slopes that pure Heston cannot reproduce,
+and they may mitigate the $\kappa$-sloppy direction by eliminating
+mean-reversion as a parameter altogether.
+
+\paragraph{Regime-switching calibration.}  Given the macro-financial regime
+structure documented in Chapter~\ref{ch:macro}, one could condition the
+calibration on the current regime, fitting separate Heston (or SVJ) parameters
+in Calm versus Stress states.  This would formalise the informal observation
+that the volatility surface behaves differently across regimes and could improve
+both fit quality and parameter stability.
+
+\paragraph{Bayesian calibration.}  Treating the calibration as a posterior
+inference problem (e.g.\ via Sequential Monte Carlo) would naturally
+quantify parameter uncertainty rather than reporting point estimates.  The
+Hessian-based uncertainty ellipsoids computed in Chapter~\ref{ch:hessian}
+could serve as an informed prior covariance.
+
+\section{Closing Remarks}
+
+This dissertation demonstrates that Heston calibration for crude oil options is
+a genuinely difficult problem, more ill-conditioned than its equity-index
+counterpart, and that the degree of ill-conditioning varies predictably with
+macro-financial conditions.  The rolling Hessian framework introduced here
+provides a reusable diagnostic for any model-market pair, and the negative
+correlation between market stress and condition number is an unexpected result
+with practical implications for hedgers.
+
+The most immediate practical lesson is one of epistemic humility: a
+well-calibrated Heston surface is a useful interpolation device, but the
+parameter vector it produces --- particularly the mean-reversion speed $\kappa$
+--- should not be taken as a reliable structural estimate.  For applications
+that require stable, interpretable parameters (Greeks computation, scenario
+analysis, risk limits), a richer model is needed.  Chapter~\ref{ch:svj}
+takes precisely this step, applying the same Hessian spectral methodology to
+the Bates (1996) SVJ model.  The result --- a condition number of $\approx
+2{,}804$ compared with $\approx 52{,}813$ for Heston --- is cautiously
+encouraging, though the prevalence of boundary parameters and the negligible
+RMSE improvement indicate that further regularisation (e.g.\ Bayesian priors
+anchored to historical jump data) is needed before SVJ parameter estimates
+can be treated as structurally meaningful.
+
+% ============================================================
+
+% --- Bibliography ---
+\bibliographystyle{apalike}
+\bibliography{references}
+
+% ============================================================
+%  APPENDIX — READING LIST
+% ============================================================
+\appendix
+\chapter{Reading List}
+\label{app:reading_list}
+
+The table below consolidates all papers consulted during the preparation of this
+dissertation, including the 16 entries from the original reading sheet and 9 additional
+references introduced in Chapters~\ref{ch:hessian}, \ref{ch:macro}, and~\ref{ch:svj}.
+Entries are numbered continuously; papers added for this dissertation begin at entry~17.
+
+\begin{landscape}
+\scriptsize
+\setlength{\LTpre}{0pt}
+\setlength{\LTpost}{0pt}
+\begin{longtable}{
+  >{\raggedright\arraybackslash}p{0.4cm}   % #
+  >{\raggedright\arraybackslash}p{3.4cm}   % Article
+  >{\raggedright\arraybackslash}p{2.0cm}   % Author / Year
+  >{\raggedright\arraybackslash}p{2.8cm}   % Objectives
+  >{\raggedright\arraybackslash}p{2.8cm}   % Problem Statement
+  >{\raggedright\arraybackslash}p{2.8cm}   % Methodology
+  >{\raggedright\arraybackslash}p{2.8cm}   % Findings
+  >{\raggedright\arraybackslash}p{2.8cm}   % Conclusions
+  >{\raggedright\arraybackslash}p{2.6cm}   % Comments / Keywords
+}
+\toprule
+\textbf{\#} &
+\textbf{Article} &
+\textbf{Author / Year} &
+\textbf{Objectives} &
+\textbf{Problem Statement} &
+\textbf{Methodology} &
+\textbf{Findings} &
+\textbf{Conclusions} &
+\textbf{Comments / Keywords} \\
+\midrule
+\endfirsthead
+\multicolumn{9}{l}{\footnotesize\textit{(continued from previous page)}} \\
+\toprule
+\textbf{\#} &
+\textbf{Article} &
+\textbf{Author / Year} &
+\textbf{Objectives} &
+\textbf{Problem Statement} &
+\textbf{Methodology} &
+\textbf{Findings} &
+\textbf{Conclusions} &
+\textbf{Comments / Keywords} \\
+\midrule
+\endhead
+\midrule
+\multicolumn{9}{r}{\footnotesize\textit{(continued on next page)}} \\
+\endfoot
+\bottomrule
+\endlastfoot
+
+%--- Entry 1 ---
+1 &
+The Pricing of Options and Corporate Liabilities &
+Black \& Scholes / 1973 &
+Price European options on stocks &
+Lack of closed-form pricing &
+Delta hedge + PDE approach &
+Derived BS formula &
+Laid foundation for modern option pricing &
+GBM / risk-neutral valuation \\
+\addlinespace
+
+%--- Entry 2 ---
+2 &
+The Pricing of Commodity Contracts &
+Black / 1976 &
+Price options on futures &
+Need for futures-based framework &
+Modified BS using futures as underlying &
+Black-76 model for commodities &
+Simplified pricing via forwards &
+Black-76 / futures options \\
+\addlinespace
+
+%--- Entry 3 ---
+3 &
+Option Pricing with Jumps &
+Merton / 1976 &
+Account for jumps in prices &
+Lognormal model unrealistic &
+Jump-diffusion process &
+Model includes jumps in returns &
+Improves fit to empirical prices &
+Jumps / Poisson process \\
+\addlinespace
+
+%--- Entry 4 ---
+4 &
+Stochastic Behavior of Commodity Prices &
+Schwartz / 1997 &
+Model commodity spot dynamics &
+Non-constant mean-reverting prices &
+Two-factor mean-reverting model &
+Explains term structure and dynamics &
+Supports long-dated option pricing &
+Mean reversion / convenience yield \\
+\addlinespace
+
+%--- Entry 5 ---
+5 &
+Evaluating Natural Resource Investments &
+Brennan \& Schwartz / 1985 &
+Valuing resource projects &
+Commodity prices uncertain &
+Real options + stochastic yield &
+Incorporated convenience yield &
+Highlighted real options for commodities &
+Stochastic yield / real options \\
+\addlinespace
+
+%--- Entry 6 ---
+6 &
+Options, Futures, and Other Derivatives &
+Hull / 2018 &
+Comprehensive textbook &
+Summarises models and methods &
+Pedagogical explanation &
+Clarifies model assumptions &
+Used for reference and formulas &
+Educational / reference \\
+\addlinespace
+
+%--- Entry 7 ---
+7 &
+A Closed-Form Solution for Options with Stochastic Volatility &
+Heston / 1993 &
+Model with stochastic volatility &
+Constant vol fails to explain smiles &
+Variance follows CIR process &
+Closed-form solution for SV model &
+Captures volatility smiles &
+Stochastic volatility / CIR \\
+\addlinespace
+
+%--- Entry 8 ---
+8 &
+Jumps and Stochastic Volatility &
+Bates / 1996 &
+Combine jumps and SV &
+Need model for skew \& kurtosis &
+Extended Heston + jumps &
+Matches observed market prices &
+Post-crash implied volatility skew &
+SV + jumps / smile fitting \\
+\addlinespace
+
+%--- Entry 9 ---
+9 &
+Oil Option Volatility &
+Soini \& Lorentzen / 2019 &
+Study crude oil option pricing &
+Implied vol deviates from BS &
+Empirical analysis of smiles &
+Systematic U-shaped vol patterns &
+Shows GBM mispricing &
+Oil market / smile \\
+\addlinespace
+
+%--- Entry 10 ---
+10 &
+Wheat Futures Under Ukraine War &
+Patel / 2024 &
+Impact of Ukraine war on wheat &
+Why price impact differed by region &
+Event study using futures &
+US more affected than EU &
+Geopolitical shock analysis &
+Wheat / geopolitical risk \\
+\addlinespace
+
+%--- Entry 11 ---
+11 &
+Oil Volatility Spike &
+US EIA / 2020 &
+Document oil volatility surge &
+Extreme price swings in 2020 &
+Descriptive report &
+Oil volatility peaked historically &
+Useful for macro regime classification &
+Crude / macro regime \\
+\addlinespace
+
+%--- Entry 12 ---
+12 &
+Double Exponential Jump Model &
+Kou / 2002 &
+Model jumps with skew &
+Single-jump models symmetric &
+Double exponential jump sizes &
+Improves smile fitting &
+Asymmetric jumps match data &
+Jumps / double exponential \\
+\addlinespace
+
+%--- Entry 13 ---
+13 &
+Nelson-Siegel-Svensson Model &
+Rodr\'iguez-S\'anchez / 2024 &
+NSS regression &
+Collinearity in NS and NSS models &
+Regression of yield curves &
+Collinearity mitigated &
+Collinearity mitigated &
+NSS / regressions / yield curve \\
+\addlinespace
+
+%--- Entry 14 ---
+14 &
+Empirical Performance of Alternative Option Pricing Models &
+Bakshi, Cao \& Chen / 1997 &
+Compare BS, SV, jumps, and SVJ on liquid options &
+GBM with constant volatility fails to match smiles and higher moments &
+Joint tests of pricing, dynamics, and hedging on cross-sections; panel estimation &
+SV and SVJ models reduce pricing and hedging errors versus BS; jumps important &
+Richer dynamics materially improve fit; model choice should reflect the use case &
+Model comparison / hedging errors / smile / SV / jumps \\
+\addlinespace
+
+%--- Entry 15 ---
+15 &
+Stochastic Convenience Yield and the Pricing of Oil Contingent Claims &
+Gibson \& Schwartz / 1990 &
+Price oil derivatives with a stochastic convenience-yield factor &
+GBM cannot capture oil term structure and storage effects &
+Two-factor diffusion (spot and convenience yield); empirical calibration to oil data &
+Model explains futures term structure and improves derivative valuation &
+Convenience yield is central for energy; single-factor GBM too restrictive &
+Commodities / convenience yield / term structure / energy options \\
+\addlinespace
+
+%--- Entry 16 ---
+16 &
+The Importance of the Loss Function in Option Valuation &
+Christoffersen \& Jacobs / 2004 &
+Show how loss-function selection changes model ranking and inference &
+Misalignment between estimation objective and evaluation metric biases conclusions &
+Theoretical analysis and empirical comparisons across common loss functions &
+Model rankings vary with MAE vs RMSE, price vs vega-normalised errors &
+Use a loss function consistent with the study's objective; report sensitivity &
+MAE vs RMSE / vega-normalised errors / evaluation design \\
+\addlinespace
+\midrule
+\multicolumn{9}{l}{\textit{Papers added for this dissertation (Chapters 5--6)}} \\
+\midrule
+
+%--- Entry 17 ---
+17 &
+Option Valuation Using the Fast Fourier Transform &
+Carr \& Madan / 1999 &
+Price options efficiently across many strikes simultaneously &
+Analytical characteristic functions are expensive to integrate numerically strike-by-strike &
+Damped Fourier transform of the call price; FFT evaluated on a uniform log-strike grid &
+One FFT call prices $N = 4{,}096$ strikes; interpolation to arbitrary strikes via cubic spline &
+FFT reduces pricing from $O(N^2)$ to $O(N \log N)$; essential for calibration speed &
+FFT / characteristic function / Carr-Madan / calibration efficiency \\
+\addlinespace
+
+%--- Entry 18 ---
+18 &
+Complex Logarithms in Heston-Like Models &
+Lord \& Kahl / 2010 &
+Eliminate numerical instabilities in the Heston characteristic function &
+Branch cuts in the complex logarithm cause sign flips and wrong option prices at long maturities &
+``Rotation count'' correction that tracks the accumulated argument of the log; applied to Heston and SVJ &
+Rotation trick eliminates discontinuities; validated against Monte Carlo benchmarks &
+Numerically stable Heston pricing is achievable with a simple branch-cut fix &
+Numerical stability / branch cuts / Heston / complex logarithms \\
+\addlinespace
+
+%--- Entry 19 ---
+19 &
+Financial Modelling with Jump Processes &
+Cont \& Tankov / 2004 &
+Provide a unified mathematical framework for jump process models in finance &
+Continuous diffusion models cannot capture the heavy tails, jumps, and skew observed in markets &
+L\'evy processes, Poisson random measures, characteristic exponents; calibration and hedging theory &
+Comprehensive treatment of pricing, hedging, and calibration for jump models; exponential L\'evy class &
+Jump models are necessary for capturing market discontinuities; calibration requires careful regularisation &
+L\'evy processes / jump-diffusion / exponential L\'evy / calibration \\
+\addlinespace
+
+%--- Entry 20 ---
+20 &
+Measuring Geopolitical Risk &
+Caldara \& Iacoviello / 2022 &
+Construct a daily index of geopolitical risk from newspaper text &
+No consistent, high-frequency measure of geopolitical risk existed for empirical finance &
+Automated text search of major newspaper archives; count of geopolitical-threat articles normalised by total volume &
+GPR spikes around wars, terrorist attacks, and geopolitical tensions; significantly affects economic activity and oil prices &
+Geopolitical risk is a distinct macroeconomic factor that should be controlled for in commodity and asset pricing &
+Geopolitical risk / text analysis / oil prices / macro risk \\
+\addlinespace
+
+%--- Entry 21 ---
+21 &
+Unspanned Stochastic Volatility and the Pricing of Commodity Derivatives &
+Trolle \& Schwartz / 2009 &
+Model commodity derivatives with volatility factors that cannot be hedged by futures alone &
+Standard term-structure models leave large unhedged volatility exposures; futures do not span volatility risk &
+Multi-factor affine model with unspanned stochastic volatility; calibration to crude oil futures and options &
+Unspanned volatility is quantitatively important for crude oil; futures-only hedges leave material residual risk &
+Commodity derivative models require stochastic volatility factors beyond those spanning the futures curve &
+Unspanned stochastic volatility / commodity derivatives / crude oil / term structure \\
+\addlinespace
+
+%--- Entry 22 ---
+22 &
+The Volatility Surface: A Practitioner's Guide &
+Gatheral / 2006 &
+Provide a rigorous practitioner framework for understanding and fitting the implied volatility surface &
+Practitioners lack a coherent model-independent framework for the volatility surface &
+Survey of stochastic volatility, local volatility, jumps, and their implications for the surface shape &
+SVI and SSVI parameterisations; arbitrage constraints on the surface; connection to exotic pricing &
+A well-fitted volatility surface requires understanding of model dynamics and surface geometry &
+Volatility surface / SVI / SSVI / stochastic vol / local vol / practitioner \\
+\addlinespace
+
+%--- Entry 23 ---
+23 &
+Why are Nonlinear Fits to Data so Challenging? &
+Transtrum, Machta \& Sethna / 2010 &
+Explain the universal difficulty of nonlinear parameter estimation from an information-geometry perspective &
+Optimisers for nonlinear models routinely fail or return highly unstable parameters &
+Hessian spectral analysis of the loss landscape; information geometry; stiff-sloppy decomposition &
+Model parameter spaces are generically ``sloppy'': a few stiff (well-constrained) directions and many sloppy ones &
+Sloppiness is a universal property of complex parametric models and directly explains calibration instability &
+Sloppiness / Hessian / parameter identifiability / information geometry / stiff-sloppy \\
+\addlinespace
+
+%--- Entry 24 ---
+24 &
+Exact Simulation of Stochastic Volatility and Other Affine Jump Diffusion Processes &
+Broadie \& Kaya / 2006 &
+Simulate the Heston model exactly, without Euler discretisation bias &
+Standard Monte Carlo for Heston introduces discretisation error; the Feller condition affects simulation stability &
+Exact conditional distributions via Laplace transform inversion; exact simulation of the CIR variance process &
+Exact simulation eliminates bias at any step size; practically feasible for Heston and AJD processes &
+Exact simulation is important for accurate pricing under Feller violations and for validating semi-analytical pricers &
+Monte Carlo / exact simulation / Heston / Feller condition / affine jump diffusion \\
+\addlinespace
+
+%--- Entry 25 ---
+25 &
+Jumps and Stochastic Volatility: Exchange Rate Processes Implicit in Deutsche Mark Options &
+Bates / 1996 &
+Extend Heston SV model to include compound Poisson log-normal jumps; price FX options &
+Pure-diffusion Heston cannot account for short-term excess kurtosis and left-tail mass in options prices &
+Closed-form characteristic function: $\varphi_\mathrm{SVJ} = \varphi_\mathrm{Heston} \cdot \exp(\lambda T [\phi_J - 1 - \mathrm{iu}\bar{\mu}])$; Carr-Madan FFT pricing &
+SVJ fits short-dated implied vol smiles better than pure Heston; jump component absorbs short-term kurtosis; three-parameter extension remains tractable &
+SVJ is the natural extension of Heston for commodities with discrete price shocks; used in Chapter~\ref{ch:svj} of this dissertation &
+Bates (1996) / SVJ / jump-diffusion / stochastic volatility / characteristic function \\
+
+\end{longtable}
+\end{landscape}
+
+\end{document}

@@ -2,7 +2,7 @@
 plot_loss_landscape.py — 3D loss landscape slices of the Heston calibration surface.
 
 For each of four parameter pairs, all other parameters are fixed at their optimal
-values (CO1, 2026-02-19) and the weighted-MSE loss is evaluated on a 2D grid.
+values (CO1, 2021-12-01) and the weighted-MSE loss is evaluated on a 2D grid.
 Z-axis: log10(RMSE in vol points) for readability.
 
 Outputs (to data_plots/):
@@ -29,9 +29,9 @@ os.makedirs("data_plots", exist_ok=True)
 warnings.filterwarnings("ignore")
 
 # ---------------------------------------------------------------------------
-# Calibration data for CO1 on 2026-02-19
+# Calibration data for CO1 on 2021-12-01
 # ---------------------------------------------------------------------------
-CAL_DATE    = pd.Timestamp("2026-02-19")
+CAL_DATE    = pd.Timestamp("2021-12-01")
 UNDERLYING  = "CO1"
 
 print("Loading surface data...")
@@ -47,13 +47,13 @@ T = sub["Maturity"].values
 r = sub["RiskFreeRate"].values.mean()
 mkt_ivols = sub["ImpliedVol"].values
 
-# Optimal parameters (CO1, 2026-02-19)
+# Optimal parameters (CO1, 2021-12-01) — from rolling_hessian.csv
 OPT = {
-    "kappa": 4.7748788165989,
-    "theta": 0.036272111964295056,
-    "sigma": 1.588887335782593,
-    "rho":   0.7699427543219018,
-    "v0":    0.21433645304159257,
+    "kappa": 0.33516701552342615,
+    "theta": 0.001,
+    "sigma": 1.1093657844193325,
+    "rho":   -0.795573728736244,
+    "v0":    0.356925959447303,
 }
 PARAM_ORDER = ["kappa", "theta", "sigma", "rho", "v0"]
 
@@ -180,7 +180,7 @@ SLICES = [
     },
     {
         "ax1": "rho",   "ax2": "sigma",
-        "ax1_range": (0.1,  0.98),
+        "ax1_range": (-0.99, 0.99),
         "ax2_range": (0.3,  2.0),
         "fname": "data_plots/loss_rho_sigma.png",
         "elev": 28, "azim": 210,
@@ -194,7 +194,7 @@ SLICES = [
     },
     {
         "ax1": "rho",   "ax2": "v0",
-        "ax1_range": (0.1,  0.98),
+        "ax1_range": (-0.99, 0.99),
         "ax2_range": (0.05, 0.50),
         "fname": "data_plots/loss_rho_v0.png",
         "elev": 28, "azim": 215,

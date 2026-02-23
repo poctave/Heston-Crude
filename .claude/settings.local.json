@@ -12,7 +12,11 @@
       "Bash(MPLBACKEND=Agg PYTHONUNBUFFERED=1 conda run python:*)",
       "Bash(git add:*)",
       "Bash(git restore:*)",
-      "Bash(MPLBACKEND=Agg PYTHONUNBUFFERED=1 conda run -n base python:*)"
+      "Bash(MPLBACKEND=Agg PYTHONUNBUFFERED=1 conda run -n base python:*)",
+      "Bash(python:*)",
+      "Bash(git stash:*)",
+      "Bash(FILTER_BRANCH_SQUELCH_WARNING=1 git filter-branch:*)",
+      "Bash(MPLBACKEND=Agg PYTHONUNBUFFERED=1 conda run --no-capture-output python:*)"
     ]
   }
 }

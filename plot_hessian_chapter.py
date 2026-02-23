@@ -54,6 +54,10 @@ EVENT_ANNOTATIONS = [
 
 ROLLING_CSV = "data_plots/rolling_hessian.csv"
 
+# Static analysis date — 1 December 2021 (last date with historically typical
+# negative put-skew before the mid-2022 call-skew inversion)
+STATIC_DATE = pd.Timestamp("2021-12-01")
+
 
 # ---------------------------------------------------------------------------
 # Load static Hessian results
@@ -62,24 +66,30 @@ ROLLING_CSV = "data_plots/rolling_hessian.csv"
 def load_static_results():
     """
     Reload Bloomberg data and run static Hessian for CO1 and CL1.
-    Returns dict: underlying -> {H, spec, params}.
+    Uses STATIC_DATE and calibrated parameters from rolling_hessian.csv.
+    Returns dict: underlying -> {H, spec, params, rmse}.
     """
     print("Loading Bloomberg surface data for static analysis...")
     df_full = surface_loader.build_options_df()
     moneyness = df_full["Strike"] / df_full["SpotPrice"]
     df_full = df_full[(moneyness >= 0.70) & (moneyness <= 1.30)].copy()
-    cal_date = df_full["Date"].max()
+    cal_date = STATIC_DATE
     print(f"Static date: {cal_date.date()}")
+
+    rolling = pd.read_csv(ROLLING_CSV, parse_dates=["Date"])
 
     static = {}
     for und in ["CO1", "CL1"]:
-        csv_path = os.path.join("results", f"{und}_calibration.csv")
-        if not os.path.exists(csv_path):
-            print(f"  Missing {csv_path} — run calibrate.py first.")
+        roll_row = rolling[(rolling["Date"] == cal_date) &
+                           (rolling["Underlying"] == und)]
+        if roll_row.empty:
+            print(f"  Missing rolling entry for {und} on {cal_date.date()} "
+                  f"in {ROLLING_CSV}.")
             sys.exit(1)
-        row = pd.read_csv(csv_path).iloc[0]
+        row = roll_row.iloc[0]
         params = np.array([row["kappa"], row["theta"], row["sigma"],
                            row["rho"],   row["v0"]])
+        rmse_val = row["rmse_volpts"]
 
         sub = df_full[(df_full["Underlying"] == und) &
                       (df_full["Date"] == cal_date)].dropna(subset=["ImpliedVol"])
@@ -93,7 +103,7 @@ def load_static_results():
         print(f"  [{und}] κ_H = {spec['condition_number']:.3e}")
 
         static[und] = {
-            "H": H, "spec": spec, "params": params, "rmse": row["rmse_volpts"]
+            "H": H, "spec": spec, "params": params, "rmse": rmse_val
         }
     return static, cal_date
 
@@ -106,7 +116,7 @@ def plot_hessian_matrix(static):
     print("\nFigure A: hessian_matrix.png")
     fig, axes = plt.subplots(1, 2, figsize=(12, 5))
     fig.suptitle("Hessian of the Calibration Loss $\\mathcal{L}(\\Theta)$ — "
-                 "19 February 2026", fontsize=13, fontweight="bold")
+                 "1 December 2021", fontsize=13, fontweight="bold")
 
     for ax, und in zip(axes, ["CO1", "CL1"]):
         H = static[und]["H"]
@@ -140,7 +150,7 @@ def plot_hessian_matrix(static):
 def plot_eigenvalue_spectrum(static):
     print("\nFigure B: eigenvalue_spectrum.png")
     fig, axes = plt.subplots(1, 2, figsize=(12, 5))
-    fig.suptitle("Eigenvalue Spectrum of the Hessian — 19 February 2026",
+    fig.suptitle("Eigenvalue Spectrum of the Hessian — 1 December 2021",
                  fontsize=13, fontweight="bold")
 
     colors_bar = plt.cm.viridis(np.linspace(0.1, 0.9, 5))
@@ -190,7 +200,7 @@ def plot_eigenvector_composition(static):
 
     fig, axes = plt.subplots(2, 5, figsize=(16, 6), sharey=False)
     fig.suptitle("Eigenvector Loadings — Stiff and Sloppy Parameter Directions "
-                 "(19 February 2026)", fontsize=12, fontweight="bold")
+                 "(1 December 2021)", fontsize=12, fontweight="bold")
 
     for row_idx, und in enumerate(["CO1", "CL1"]):
         evecs = static[und]["spec"]["eigenvectors"]
